@@ -8,7 +8,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
 
 - [ ] 1. Phase 1 — Scaffold & Core State (Day 1)
 
-  - [ ] 1.1 Create Xcode project with Info.plist and entitlements
+  - [x] 1.1 Create Xcode project with Info.plist and entitlements
     - Create CaffeineBar Xcode project targeting macOS 13.0 (Ventura)
     - Set `LSUIElement = true` in Info.plist
     - Set `MACOSX_DEPLOYMENT_TARGET = 13.0`
@@ -17,7 +17,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Build & Release Agent**
     - _Requirements: 44, 45, 46, 47, 48, 50_
 
-  - [ ] 1.2 Implement CupStore model with UserDefaults persistence
+  - [x] 1.2 Implement CupStore model with UserDefaults persistence
     - Create `Model/CupStore.swift` as `@Observable` class
     - Implement all persisted fields: `todayCount`, `todayTimestamps`, `lastResetDate`, `streakDays`, `personalRecord`, `totalDaysLogged`, `resetHour`, `bedtime`, `metabolismProfile`, `isMuted`, `officeMode`, `autoMuteOnCalls`, `installedSoundPacks`, `selectedSoundPack`, `dailyHistory`, `dataVersion`
     - All keys use `caffeinebar.` prefix
@@ -29,14 +29,14 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Core Engine Agent**
     - _Requirements: 15, 32, 33, 35_
 
-  - [ ] 1.3 Implement logCup() and undoLastCup() with bounded undo
+  - [~] 1.3 Implement logCup() and undoLastCup() with bounded undo
     - `logCup()` increments `todayCount`, appends timestamp, updates `personalRecord`
     - `undoLastCup()` decrements count, removes last timestamp
     - Bound undo history to 50 entries via ring buffer
     - **Owner: Core Engine Agent**
     - _Requirements: 3.1, 4.3, 4.5, 6.4_
 
-  - [ ] 1.4 Register MenuBarExtra entry point
+  - [~] 1.4 Register MenuBarExtra entry point
     - Create `CaffeineBarApp.swift` with `@main` App struct
     - Register `MenuBarExtra` with `.window` style
     - Inject `CupStore` and `LicenseManager` into environment
@@ -53,12 +53,12 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Validates: Requirements 3.1, 4.3, 4.5, 6.4, 32, 33**
     - **Owner: QA & Accessibility Agent**
 
-- [ ] 2. Phase 1 Checkpoint
+- [~] 2. Phase 1 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 3. Phase 2 — Core Popover UI & Logging (Day 2)
 
-  - [ ] 3.1 Build MenuBarExtraView popover structure
+  - [~] 3.1 Build MenuBarExtraView popover structure
     - Fixed width 260pt, dynamic height
     - Background: `.ultraThinMaterial`
     - Hero cup count: `.system(size: 44, weight: .heavy, design: .rounded)` with `.dynamicTypeSize(...accessibility3)`
@@ -68,7 +68,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-  - [ ] 3.2 Implement one-click logging flow
+  - [~] 3.2 Implement one-click logging flow
     - Wire "+1 Coffee" button to `CupStore.logCup()`
     - Dismiss popover after log (default behavior)
     - Add "keep popover open after log" preference support
@@ -76,14 +76,14 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-  - [ ] 3.3 Implement Undo affordance with ⌘+Z
+  - [~] 3.3 Implement Undo affordance with ⌘+Z
     - Show "Undo last coffee" when `todayCount > 0`
     - Hide undo when `todayCount == 0`
     - Wire ⌘+Z keyboard shortcut
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-  - [ ] 3.4 Implement today's timestamps display and empty state
+  - [~] 3.4 Implement today's timestamps display and empty state
     - Display timestamps list for today's logs
     - Empty state: low-opacity `cup.and.saucer.fill` SF Symbol + "Engine cold. Log your first cup."
     - Hide empty state when `todayCount > 0`
@@ -97,7 +97,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
 
 - [ ] 4. Phase 3 — Icon Escalation & Daily Reset (Day 3)
 
-  - [ ] 4.1 Implement IconRenderer with 6 escalation states
+  - [~] 4.1 Implement IconRenderer with 6 escalation states
     - Create `View/IconRenderer.swift` with static methods
     - Map: 0→outline cup/gray, 1→filled cup, 2→filled+steam, 3→filled+lightning, 4→filled+exclamation/warning, 5+→skull/danger
     - All icons as SF Symbols rendered as template images
@@ -106,7 +106,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 27.1_
 
-  - [ ] 4.2 Create Asset Catalog color tokens
+  - [~] 4.2 Create Asset Catalog color tokens
     - Define `status.empty`, `status.active`, `status.warning`, `status.danger` in Assets.xcassets
     - Each with Light, Dark, and Increased Contrast variants
     - `status.warning` light = `#D97706` (≥3:1 contrast on white)
@@ -115,7 +115,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 26.1, 26.2, 26.3, 26.4_
 
-  - [ ] 4.3 Implement timezone-safe daily reset logic
+  - [~] 4.3 Implement timezone-safe daily reset logic
     - `evaluateReset()` using `Calendar.current.startOfDay(for:)` + resetHour
     - Guard with `lastResetDate < boundary` for exactly-once semantics
     - Handle DST spring-forward and fall-back correctly
@@ -127,14 +127,14 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Core Engine Agent**
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 6.1, 6.2, 6.3_
 
-  - [ ] 4.4 Add custom reset hour in SettingsView
+  - [~] 4.4 Add custom reset hour in SettingsView
     - Picker for reset hour 0–23
     - Display streak stats: `streakDays`, `personalRecord`, `totalDaysLogged`
     - Display "Streaks are per macOS user account; iCloud sync coming in Ultra."
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 5.2, 6.5, 37.2_
 
-  - [ ] 4.5 Implement migration trigger for >1000 entries
+  - [~] 4.5 Implement migration trigger for >1000 entries
     - When `dailyHistory.count > 1000`, schedule background migration
     - Migration runs on background queue, never blocks UI
     - **Owner: Core Engine Agent**
@@ -159,12 +159,12 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Validates: Requirements 1.2, 1.3, 1.4, 1.5, 1.6, 1.7**
     - **Owner: QA & Accessibility Agent**
 
-- [ ] 5. Phase 3 Checkpoint
+- [~] 5. Phase 3 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 6. Phase 4 — Sound Engine & Call Detection (Day 4)
 
-  - [ ] 6.1 Implement SoundEngine with single-instance AVAudioPlayer recycling
+  - [~] 6.1 Implement SoundEngine with single-instance AVAudioPlayer recycling
     - Create `Engine/SoundEngine.swift`
     - Maintain at most one active `AVAudioPlayer` instance
     - Before new allocation: `stop()` prior, set to `nil`
@@ -174,7 +174,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Audio & Media Agent**
     - _Requirements: 9.3, 12.1, 12.2, 12.3, 13.1, 13.2_
 
-  - [ ] 6.2 Bundle sound assets and implement cup-to-sound mapping
+  - [~] 6.2 Bundle sound assets and implement cup-to-sound mapping
     - Bundle all `.m4a` files in `Sounds/` directory (≤2MB total)
     - Cup 1 → "soft chime", Cup 2 → "approving ding", Cup 3 → "hmm voice"
     - Cup 4 → "stethoscope concern" (Pro only)
@@ -184,7 +184,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Audio & Media Agent**
     - _Requirements: 9.1, 9.2, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [ ] 6.3 Implement CallDetector with bundle ID + CoreAudio detection
+  - [~] 6.3 Implement CallDetector with bundle ID + CoreAudio detection
     - Create `Engine/CallDetector.swift`
     - Scan `NSWorkspace.shared.runningApplications` for `us.zoom.xos`, `com.apple.FaceTime`
     - Query CoreAudio `AudioObjectGetPropertyData` for active input streams
@@ -193,7 +193,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Core Engine Agent**
     - _Requirements: 14.1, 14.2, 14.3_
 
-  - [ ] 6.4 Implement Meeting Mode (right-click context menu)
+  - [~] 6.4 Implement Meeting Mode (right-click context menu)
     - Create `Engine/MeetingMode.swift`
     - Add "Meeting Mode" toggle to MenuBarIcon right-click context menu
     - Suppress all audio while active
@@ -201,7 +201,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Core Engine Agent**
     - _Requirements: 16.1, 16.2, 16.3_
 
-  - [ ] 6.5 Implement Office Mode (volume cap + haptic)
+  - [~] 6.5 Implement Office Mode (volume cap + haptic)
     - Create `Engine/OfficeMode.swift`
     - Add toggle in SettingsView
     - When active (non-haptic): clamp volume to 50% of system volume
@@ -209,7 +209,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Core Engine Agent**
     - _Requirements: 17.1, 17.2, 17.3_
 
-  - [ ] 6.6 Implement mute toggle and auto-mute defaults
+  - [~] 6.6 Implement mute toggle and auto-mute defaults
     - Add mute toggle in SettingsView
     - When muted: suppress all audio, icon still updates
     - `autoMuteOnCalls` defaults ON on first launch
@@ -230,12 +230,12 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Validates: Requirements 14.1, 14.2**
     - **Owner: QA & Accessibility Agent**
 
-- [ ] 7. Phase 4 Checkpoint
+- [~] 7. Phase 4 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 8. Phase 5 — Pro Features (Day 5)
 
-  - [ ] 8.1 Implement HalfLifeClock view and computation
+  - [~] 8.1 Implement HalfLifeClock view and computation
     - Create `View/HalfLifeClock.swift`
     - Compute clearance: `lastLog + halfLife × 6` (97% elimination)
     - Half-life: Fast=5h, Normal=5.5h, Slow=6h
@@ -245,7 +245,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 18.1, 18.2, 18.3, 18.4_
 
-  - [ ] 8.2 Implement cut-off time reminder and bedtime config
+  - [~] 8.2 Implement cut-off time reminder and bedtime config
     - Add bedtime picker in SettingsView (time-of-day value)
     - When clearanceTime > bedtime: apply `status.warning` amber tint to icon
     - Post notification "That's your problem tonight." on late log
@@ -253,7 +253,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 19.1, 19.2, 19.3_
 
-  - [ ] 8.3 Implement WeeklyGraphView with Swift Charts
+  - [~] 8.3 Implement WeeklyGraphView with Swift Charts
     - Create `View/WeeklyGraphView.swift`
     - 7-day `BarMark` chart from `dailyHistory`
     - Hover tooltip via `.chartOverlay` showing date + count
@@ -262,7 +262,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 20.1, 20.2, 20.3_
 
-  - [ ] 8.4 Implement SoundPackRegistry and sound pack selector
+  - [~] 8.4 Implement SoundPackRegistry and sound pack selector
     - Create `Engine/SoundPackRegistry.swift`
     - Register 4 bundled packs: "Your Mom", "Gordon Ramsay", "NASA Mission Control", "The Accountant"
     - Add sound pack selector in SettingsView (Pro-gated)
@@ -270,14 +270,14 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Audio & Media Agent**
     - _Requirements: 21.1, 21.2, 21.3_
 
-  - [ ] 8.5 Implement Free tier upsell notification at Cup 4
+  - [~] 8.5 Implement Free tier upsell notification at Cup 4
     - Post native macOS notification: "Cup 4. Something is about to happen. Unlock CaffeineBar Pro to find out."
     - Fire only when `tier == .free` AND `cupCount == 4`
     - At most once per logical day
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 22.1, 22.2_
 
-  - [ ] 8.6 Implement Pro-feature blur gate
+  - [~] 8.6 Implement Pro-feature blur gate
     - HalfLifeClock and WeeklyGraphView: `.overlay(.ultraThinMaterial)` + "Unlock Pro" CTA when Free
     - ShareCard control hidden behind Pro gate
     - Never delete or hide logged data based on tier
@@ -300,12 +300,12 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: QA & Accessibility Agent**
     - _Requirements: 55.1, 55.2, 55.3_
 
-- [ ] 9. Phase 5 Checkpoint
+- [~] 9. Phase 5 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 10. Phase 6 — Licensing, Settings & Share (Day 6)
 
-  - [ ] 10.1 Implement LicenseManager with Keychain storage
+  - [~] 10.1 Implement LicenseManager with Keychain storage
     - Create `Licensing/LicenseManager.swift` as `@Observable`
     - Define `LicenseTier` enum: `.free`, `.pro`, `.ultra` (Comparable)
     - Store license key in Keychain only (`kSecClassGenericPassword`)
@@ -315,7 +315,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Security & Licensing Agent**
     - _Requirements: 34.1, 34.2, 34.3, 38.3, 39.1_
 
-  - [ ] 10.2 Implement client-side signature verification
+  - [~] 10.2 Implement client-side signature verification
     - Embed hardcoded public key in bundle
     - Parse license key as JSON payload
     - Verify ECDSA signature via `SecKeyVerifySignature`
@@ -324,7 +324,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Security & Licensing Agent**
     - _Requirements: 40.1, 40.2, 40.3_
 
-  - [ ] 10.3 Implement offline validation cache with graceful degradation
+  - [~] 10.3 Implement offline validation cache with graceful degradation
     - Cache positive validation for 30 days
     - Weekly background re-check
     - On revocation/expiry: degrade to `.free`
@@ -333,7 +333,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Security & Licensing Agent**
     - _Requirements: 41.1, 41.2, 41.3, 41.4_
 
-  - [ ] 10.4 Implement PriceVariant build flag
+  - [~] 10.4 Implement PriceVariant build flag
     - Create `Licensing/PriceVariant.swift`
     - Build flag: `PRICE_VARIANT` = "7.99" or "9.99"
     - Display matching price in SettingsView
@@ -341,7 +341,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Security & Licensing Agent**
     - _Requirements: 42.1, 42.2, 42.3, 42.4_
 
-  - [ ] 10.5 Build complete SettingsView
+  - [~] 10.5 Build complete SettingsView
     - Reset hour picker (0–23)
     - Bedtime picker (time-of-day)
     - Metabolism profile picker ("Fast metabolizer" / "Normal metabolizer" / "Slow metabolizer")
@@ -357,7 +357,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 5.2, 6.5, 11.4, 15.2, 17.1, 18.3, 19.1, 21.2, 37.2, 38.3, 38.4, 42.2, 42.3, 43.1_
 
-  - [ ] 10.6 Implement ShareCardView
+  - [~] 10.6 Implement ShareCardView
     - Create `View/ShareCardView.swift`
     - Offscreen render via `ImageRenderer` at native scale
     - Include: cup count, streakDays, personalRecord, `caffeinebar.app` watermark
@@ -366,7 +366,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 7.1, 7.2, 7.3, 7.4_
 
-  - [ ] 10.7 Implement privacy policy in-app view
+  - [~] 10.7 Implement privacy policy in-app view
     - In-app privacy policy view accessible from SettingsView
     - State: no telemetry, all data local, only network call is license check
     - Host same text at stable URL on caffeinebar.app
@@ -390,12 +390,12 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: QA & Accessibility Agent**
     - _Requirements: 56.1, 56.2, 56.3, 56.4_
 
-- [ ] 11. Phase 6 Checkpoint
+- [~] 11. Phase 6 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Phase 7 — Accessibility, Build & QA (Day 7)
 
-  - [ ] 12.1 Implement Dynamic Type support
+  - [~] 12.1 Implement Dynamic Type support
     - Hero count with `.dynamicTypeSize(...accessibility3)`
     - At `.accessibility1+`: re-flow horizontal rows to vertical stacks
     - Fixed 260pt width, height grows
@@ -403,7 +403,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 24.1, 24.2, 24.3_
 
-  - [ ] 12.2 Implement Reduce Motion compliance
+  - [~] 12.2 Implement Reduce Motion compliance
     - Check `@Environment(\.accessibilityReduceMotion)`
     - Cup 4 shake → bold-stroke fade-in
     - Cup 5+ pulse → static 5% red material overlay
@@ -411,14 +411,14 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 25.1, 25.2, 25.3_
 
-  - [ ] 12.3 Implement color independence and Increased Contrast
+  - [~] 12.3 Implement color independence and Increased Contrast
     - Icon shape is primary signal (Outline→Filled→Steam→Lightning→Exclamation→Skull)
     - When `@Environment(\.colorSchemeContrast) == .increased`: 1pt solid border on status chips
     - Body text ≥ 4.5:1 contrast on `.ultraThinMaterial` in Light and Dark
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 26.5, 27.1, 27.2_
 
-  - [ ] 12.4 Implement Full Keyboard Access
+  - [~] 12.4 Implement Full Keyboard Access
     - ⌘+1 or Space → log cup
     - ⌘+Z → undo
     - Esc → dismiss popover
@@ -427,7 +427,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 28.1, 28.2, 28.3, 28.4, 28.5_
 
-  - [ ] 12.5 Implement VoiceOver semantic groups and labels
+  - [~] 12.5 Implement VoiceOver semantic groups and labels
     - Group hero-count, log-history, settings with `.accessibilityElement(children: .contain)`
     - MenuBarIcon `accessibilityLabel`: "CaffeineBar. {N} cups logged. {state}."
     - HalfLifeClock label: "Caffeine clears your system at {time}"
@@ -436,20 +436,20 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 29.1, 29.2, 29.3, 29.4_
 
-  - [ ] 12.6 Declare accessibility nutrition labels
+  - [~] 12.6 Declare accessibility nutrition labels
     - Distribution metadata: VoiceOver, Full Keyboard Access, Increase Contrast, Reduce Motion, Dynamic Type
     - Ensure behavioral requirements behind each label are satisfied
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 30.1, 30.2_
 
-  - [ ] 12.7 Write popover-vs-menu HIG justification document
+  - [~] 12.7 Write popover-vs-menu HIG justification document
     - Document justification for using `MenuBarExtraStyle.window` (popover) instead of standard menu
     - Cite HalfLifeClock, WeeklyGraphView, sound pack selector, license-key entry as complexity drivers
     - Include in notarization submission package
     - **Owner: QA & Accessibility Agent**
     - _Requirements: 31.1_
 
-  - [ ] 12.8 Create GitHub Actions CI workflow
+  - [~] 12.8 Create GitHub Actions CI workflow
     - `.github/workflows/release.yml`
     - Trigger on tag push matching `v*`
     - Build with `xcodebuild`
@@ -461,7 +461,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Build & Release Agent**
     - _Requirements: 51.1, 51.2_
 
-  - [ ] 12.9 Integrate Sparkle for in-app updates
+  - [~] 12.9 Integrate Sparkle for in-app updates
     - Link Sparkle as Swift Package dependency
     - Set `SUFeedURL` to `https://caffeinebar.app/appcast.xml`
     - Update checks on launch + every 24 hours
@@ -469,7 +469,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Build & Release Agent**
     - _Requirements: 50.1, 50.2_
 
-  - [ ] 12.10 Notarization rehearsal on clean VM
+  - [~] 12.10 Notarization rehearsal on clean VM
     - Execute on clean macOS VM with no developer certificates
     - ≥3 days before launch
     - Verify `.dmg` opens without Gatekeeper warnings
@@ -492,7 +492,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: QA & Accessibility Agent**
     - _Requirements: 16, 17_
 
-- [ ] 13. Final Checkpoint — All tests pass, accessibility audit complete
+- [~] 13. Final Checkpoint — All tests pass, accessibility audit complete
   - Ensure all unit tests and property tests pass
   - Ensure Accessibility Inspector audit covers all 6 escalation states × Light/Dark/Increased Contrast
   - Ensure WCAG AA contrast verified for all text-on-surface pairings
