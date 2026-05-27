@@ -6,7 +6,7 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
 
 ## Tasks
 
-- [ ] 1. Phase 1 — Scaffold & Core State (Day 1)
+- [x] 1. Phase 1 — Scaffold & Core State (Day 1)
 
   - [x] 1.1 Create Xcode project with Info.plist and entitlements
     - Create CaffeineBar Xcode project targeting macOS 13.0 (Ventura)
@@ -29,14 +29,14 @@ This plan implements the CaffeineBar macOS menu bar utility across 7 phases (mat
     - **Owner: Core Engine Agent**
     - _Requirements: 15, 32, 33, 35_
 
-  - [~] 1.3 Implement logCup() and undoLastCup() with bounded undo
+  - [x] 1.3 Implement logCup() and undoLastCup() with bounded undo
     - `logCup()` increments `todayCount`, appends timestamp, updates `personalRecord`
     - `undoLastCup()` decrements count, removes last timestamp
     - Bound undo history to 50 entries via ring buffer
     - **Owner: Core Engine Agent**
     - _Requirements: 3.1, 4.3, 4.5, 6.4_
 
-  - [~] 1.4 Register MenuBarExtra entry point
+  - [x] 1.4 Register MenuBarExtra entry point
     - Create `CaffeineBarApp.swift` with `@main` App struct
     - Register `MenuBarExtra` with `.window` style
     - Inject `CupStore` and `LicenseManager` into environment
