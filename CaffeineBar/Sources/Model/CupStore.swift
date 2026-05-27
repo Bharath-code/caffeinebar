@@ -139,18 +139,57 @@ final class CupStore {
         ensureDataVersion()
     }
 
+    // MARK: - Constants
+
+    /// Maximum number of timestamps retained in the undo buffer (Req 4.5).
+    /// When appending would exceed this limit, the oldest entry is dropped (ring buffer).
+    static let maxUndoHistory = 50
+
     // MARK: - Public API
 
-    /// Increment cup count, append timestamp, update personal record.
-    /// Full implementation in Task 1.3.
+    /// Increment cup count, append timestamp, update personal record (Reqs 3.1, 6.4).
+    /// Bounded to `maxUndoHistory` entries via ring buffer (Req 4.5).
+    /// Wrapped in `performActivity` to survive lid-close (Req 35).
     func logCup() {
-        // Stub — will be implemented in Task 1.3
+        ProcessInfo.processInfo.performActivity(
+            options: .userInitiated,
+            reason: "Logging a cup of coffee"
+        ) { [self] in
+            todayCount += 1
+
+            // Ring buffer: drop oldest timestamp if at capacity (Req 4.5)
+            if todayTimestamps.count >= CupStore.maxUndoHistory {
+                todayTimestamps.removeFirst()
+            }
+            todayTimestamps.append(Date())
+
+            // Update personal record if new high (Req 6.4)
+            if todayCount > personalRecord {
+                personalRecord = todayCount
+            }
+
+            persistAll()
+        }
     }
 
-    /// Decrement cup count, remove last timestamp.
-    /// Full implementation in Task 1.3.
+    /// Decrement cup count, remove last timestamp (Req 4.3).
+    /// Guards against underflow — no-op when count is already 0.
+    /// Wrapped in `performActivity` to survive lid-close (Req 35).
     func undoLastCup() {
-        // Stub — will be implemented in Task 1.3
+        ProcessInfo.processInfo.performActivity(
+            options: .userInitiated,
+            reason: "Undoing last cup log"
+        ) { [self] in
+            guard todayCount > 0 else { return }
+
+            todayCount -= 1
+
+            if !todayTimestamps.isEmpty {
+                todayTimestamps.removeLast()
+            }
+
+            persistAll()
+        }
     }
 
     /// Check if the daily reset boundary has been crossed and fire reset if needed.
