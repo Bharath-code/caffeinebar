@@ -37,8 +37,7 @@ struct CaffeineBarApp: App {
 
     var body: some Scene {
         MenuBarExtra("CaffeineBar", systemImage: "cup.and.saucer") {
-            Text("CaffeineBar")
-                .padding()
+            MenuBarExtraView()
         }
         .menuBarExtraStyle(.window)
         .environment(cupStore)

@@ -7,6 +7,7 @@
 
 import Foundation
 import Observation
+import os
 
 // MARK: - MetabolismProfile
 
@@ -67,6 +68,7 @@ final class CupStore {
         static let selectedSoundPack = "caffeinebar.selectedSoundPack"
         static let dailyHistory = "caffeinebar.dailyHistory"
         static let dataVersion = "caffeinebar.dataVersion"
+        static let keepPopoverOpen = "caffeinebar.keepPopoverOpen"
     }
 
     // MARK: - Default Values
@@ -122,6 +124,11 @@ final class CupStore {
         didSet { persistAll() }
     }
 
+    /// When true, the popover remains open after a log action (Req 3.4).
+    var keepPopoverOpen: Bool = false {
+        didSet { persistAll() }
+    }
+
     private(set) var dailyHistory: [DayRecord] = []
 
     /// Schema version — set to 1 from first build (Req 32).
@@ -131,12 +138,16 @@ final class CupStore {
 
     private let defaults: UserDefaults
 
+    /// Timer for scheduling the next daily reset check.
+    private var resetTimer: Timer?
+
     // MARK: - Initialization
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         loadFromDefaults()
         ensureDataVersion()
+        evaluateReset()
     }
 
     // MARK: - Constants
@@ -193,9 +204,98 @@ final class CupStore {
     }
 
     /// Check if the daily reset boundary has been crossed and fire reset if needed.
-    /// Full implementation in Task 4.3.
+    /// Uses `Calendar.current.startOfDay(for:)` + resetHour to compute the boundary.
+    /// Guards with `lastResetDate < boundary` for exactly-once semantics (Req 5.4 DST safety).
+    /// - Requirements: 5.1, 5.2, 5.3, 5.4, 6.1, 6.2, 6.3
     func evaluateReset() {
-        // Stub — will be implemented in Task 4.3
+        ProcessInfo.processInfo.performActivity(
+            options: .userInitiated,
+            reason: "Evaluating daily reset boundary"
+        ) { [self] in
+            let now = Date()
+            let calendar = Calendar.current
+
+            // Compute today's reset boundary: start of today + resetHour in seconds
+            var boundary = calendar.startOfDay(for: now)
+                .addingTimeInterval(TimeInterval(resetHour * 3600))
+
+            // If the boundary is in the future, use yesterday's boundary
+            if boundary > now {
+                if let yesterday = calendar.date(byAdding: .day, value: -1, to: now) {
+                    boundary = calendar.startOfDay(for: yesterday)
+                        .addingTimeInterval(TimeInterval(resetHour * 3600))
+                }
+            }
+
+            // Guard: only fire if lastResetDate < boundary (exactly-once semantics)
+            guard lastResetDate < boundary else {
+                scheduleNextResetCheck()
+                return
+            }
+
+            // Fire the reset
+            // Archive the prior day if todayCount > 0
+            if todayCount > 0 {
+                let record = DayRecord(
+                    date: lastResetDate,
+                    count: todayCount,
+                    timestamps: todayTimestamps
+                )
+                dailyHistory.append(record)
+
+                // Check if migration is needed after appending (Req 36)
+                scheduleMigrationIfNeeded()
+
+                // Update streak: prior day had logs
+                streakDays += 1
+                totalDaysLogged += 1
+            } else {
+                // Prior day had no logs — reset streak
+                streakDays = 0
+            }
+
+            // Reset today's state
+            todayCount = 0
+            todayTimestamps = []
+            lastResetDate = boundary
+
+            persistAll()
+            scheduleNextResetCheck()
+        }
+    }
+
+    /// Computes the next reset boundary and schedules a timer to call `evaluateReset()` at that time.
+    /// Cancels any existing timer before scheduling a new one.
+    /// - Requirements: 5.1, 5.3
+    func scheduleNextResetCheck() {
+        // Cancel any existing timer
+        resetTimer?.invalidate()
+        resetTimer = nil
+
+        let now = Date()
+        let calendar = Calendar.current
+
+        // Compute the next reset boundary
+        var nextBoundary = calendar.startOfDay(for: now)
+            .addingTimeInterval(TimeInterval(resetHour * 3600))
+
+        // If the boundary is in the past or now, advance to tomorrow's boundary
+        if nextBoundary <= now {
+            if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) {
+                nextBoundary = calendar.startOfDay(for: tomorrow)
+                    .addingTimeInterval(TimeInterval(resetHour * 3600))
+            }
+        }
+
+        let delay = nextBoundary.timeIntervalSince(now)
+        guard delay > 0 else { return }
+
+        resetTimer = Timer.scheduledTimer(
+            withTimeInterval: delay,
+            repeats: false
+        ) { [weak self] _ in
+            self?.evaluateReset()
+        }
     }
 
     // MARK: - Persistence (Req 35)
@@ -226,6 +326,7 @@ final class CupStore {
             defaults.set(autoMuteOnCalls, forKey: Keys.autoMuteOnCalls)
             defaults.set(installedSoundPacks, forKey: Keys.installedSoundPacks)
             defaults.set(selectedSoundPack, forKey: Keys.selectedSoundPack)
+            defaults.set(keepPopoverOpen, forKey: Keys.keepPopoverOpen)
             defaults.set(dataVersion, forKey: Keys.dataVersion)
 
             if let historyData = try? JSONEncoder().encode(dailyHistory) {
@@ -305,6 +406,9 @@ final class CupStore {
             selectedSoundPack = "default"
         }
 
+        // keepPopoverOpen defaults to false (Req 3.4)
+        keepPopoverOpen = defaults.bool(forKey: Keys.keepPopoverOpen)
+
         // dailyHistory defaults to []
         if let historyData = defaults.data(forKey: Keys.dailyHistory),
            let decoded = try? JSONDecoder().decode([DayRecord].self, from: historyData) {
@@ -346,11 +450,37 @@ final class CupStore {
 
     // MARK: - Migration (Req 36)
 
+    /// Logger for migration-related events.
+    private static let migrationLogger = Logger(
+        subsystem: "app.caffeinebar",
+        category: "migration"
+    )
+
     /// Schedules background migration when dailyHistory exceeds 1000 entries.
-    /// Migration to SQLite/Core Data runs on a background queue and never blocks the main thread.
+    /// Migration to SQLite/Core Data runs on a utility-QoS background queue
+    /// and never blocks the main thread (Req 36.1, 36.2).
     func scheduleMigrationIfNeeded() {
         guard dailyHistory.count > 1000 else { return }
-        // Migration implementation deferred to Task 4.5.
-        // Will run on a background DispatchQueue when triggered.
+
+        let entryCount = dailyHistory.count
+        CupStore.migrationLogger.info(
+            "dailyHistory has \(entryCount) entries (>1000). Scheduling background migration."
+        )
+
+        DispatchQueue.global(qos: .utility).async {
+            CupStore.migrationLogger.info(
+                "Background migration task started for \(entryCount) daily history entries. (SQLite/Core Data migration scaffold — actual migration deferred to post-MVP.)"
+            )
+            // TODO: Implement actual SQLite/Core Data migration here.
+            // This scaffold confirms the background dispatch path works.
+            // The migration will:
+            // 1. Open/create the SQLite database
+            // 2. Batch-insert dailyHistory records
+            // 3. On success, trim the UserDefaults-backed array
+            // 4. Update caffeinebar.dataVersion
+            CupStore.migrationLogger.info(
+                "Background migration task completed (scaffold). No data was migrated in this MVP build."
+            )
+        }
     }
 }
