@@ -63,6 +63,7 @@ final class CupStore {
         static let metabolismProfile = "caffeinebar.metabolismProfile"
         static let isMuted = "caffeinebar.isMuted"
         static let officeMode = "caffeinebar.officeMode"
+        static let officeModeHapticOnly = "caffeinebar.officeModeHapticOnly"
         static let autoMuteOnCalls = "caffeinebar.autoMuteOnCalls"
         static let installedSoundPacks = "caffeinebar.installedSoundPacks"
         static let selectedSoundPack = "caffeinebar.selectedSoundPack"
@@ -108,6 +109,11 @@ final class CupStore {
     }
 
     var officeMode: Bool = false {
+        didSet { persistAll() }
+    }
+
+    /// Whether Office Mode uses haptic-only feedback instead of capped audio (Req 17.3).
+    var officeModeHapticOnly: Bool = false {
         didSet { persistAll() }
     }
 
@@ -323,6 +329,7 @@ final class CupStore {
             defaults.set(metabolismProfile.rawValue, forKey: Keys.metabolismProfile)
             defaults.set(isMuted, forKey: Keys.isMuted)
             defaults.set(officeMode, forKey: Keys.officeMode)
+            defaults.set(officeModeHapticOnly, forKey: Keys.officeModeHapticOnly)
             defaults.set(autoMuteOnCalls, forKey: Keys.autoMuteOnCalls)
             defaults.set(installedSoundPacks, forKey: Keys.installedSoundPacks)
             defaults.set(selectedSoundPack, forKey: Keys.selectedSoundPack)
@@ -384,6 +391,9 @@ final class CupStore {
 
         // officeMode defaults to false
         officeMode = defaults.bool(forKey: Keys.officeMode)
+
+        // officeModeHapticOnly defaults to false (Req 17.3)
+        officeModeHapticOnly = defaults.bool(forKey: Keys.officeModeHapticOnly)
 
         // autoMuteOnCalls defaults to true (Req 15)
         if defaults.object(forKey: Keys.autoMuteOnCalls) != nil {

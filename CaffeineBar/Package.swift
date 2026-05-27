@@ -21,7 +21,7 @@ let package = Package(
             ],
             path: "Sources",
             resources: [
-                .process("Sounds"),
+                .copy("Sounds"),
                 .process("Assets.xcassets")
             ]
         ),

@@ -24,6 +24,9 @@ struct CaffeineBarApp: App {
     /// Observable license state. Defaults to `.free` until a valid key is entered.
     @State private var licenseManager = LicenseManager()
 
+    /// Manual mute override — independent of CallDetector (Req 16).
+    @State private var meetingMode = MeetingMode()
+
     // MARK: - Sparkle
 
     /// Sparkle updater controller for in-app updates (Req 50).
@@ -42,5 +45,6 @@ struct CaffeineBarApp: App {
         .menuBarExtraStyle(.window)
         .environment(cupStore)
         .environment(licenseManager)
+        .environment(meetingMode)
     }
 }

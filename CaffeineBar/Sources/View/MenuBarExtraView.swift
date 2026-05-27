@@ -17,6 +17,7 @@ struct MenuBarExtraView: View {
 
     @Environment(CupStore.self) private var store
     @Environment(LicenseManager.self) private var license
+    @Environment(MeetingMode.self) private var meetingMode
     @Environment(\.dismiss) private var dismiss
 
     // MARK: - Body
@@ -121,10 +122,30 @@ struct MenuBarExtraView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Settings gear icon in the bottom-right corner (Req 2.6).
+    /// Settings gear icon in the bottom-right corner (Req 2.6)
+    /// and Meeting Mode toggle (Req 16.1, 16.2, 16.3).
     private var settingsRow: some View {
         HStack {
+            // Meeting Mode toggle (Req 16.1, 16.2)
+            Button {
+                meetingMode.toggle()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: meetingMode.isActive ? "speaker.slash.fill" : "speaker.slash")
+                    if meetingMode.isActive {
+                        // Visual indicator: small filled circle when active (Req 16.3)
+                        Circle()
+                            .fill(.orange)
+                            .frame(width: 6, height: 6)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(meetingMode.isActive ? .orange : .secondary)
+            .help(meetingMode.isActive ? "Meeting Mode: ON — audio suppressed" : "Meeting Mode: OFF")
+
             Spacer()
+
             Button {
                 // Settings action — will open SettingsView in a later task
             } label: {
