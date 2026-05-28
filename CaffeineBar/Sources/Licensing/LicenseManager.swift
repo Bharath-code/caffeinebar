@@ -37,6 +37,14 @@ final class LicenseManager {
     /// Views react immediately to changes — no restart required (Req 23.3).
     private(set) var resolvedTier: LicenseTier = .free
 
+    // MARK: - Dev Mode Tier Override
+
+    /// Sets the tier directly (for development/testing).
+    /// In production, this will be replaced by Keychain-backed validation.
+    func setTier(_ tier: LicenseTier) {
+        resolvedTier = tier
+    }
+
     // MARK: - Stub API (full implementation in Task 10.1–10.3)
 
     /// Validates a license key and stores it in the Keychain.
@@ -58,5 +66,34 @@ final class LicenseManager {
         case success(LicenseTier)
         case invalidSignature
         case malformed
+    }
+
+    // MARK: - Display Helpers
+
+    /// Human-readable name for the current tier.
+    var tierDisplayName: String {
+        switch resolvedTier {
+        case .free: return "Free"
+        case .pro: return "Pro"
+        case .ultra: return "Ultra"
+        }
+    }
+
+    /// SF Symbol for the current tier.
+    var tierIcon: String {
+        switch resolvedTier {
+        case .free: return "cup.and.saucer"
+        case .pro: return "star.fill"
+        case .ultra: return "bolt.shield.fill"
+        }
+    }
+
+    /// Color for the current tier badge.
+    var tierColor: String {
+        switch resolvedTier {
+        case .free: return "secondary"
+        case .pro: return "orange"
+        case .ultra: return "purple"
+        }
     }
 }

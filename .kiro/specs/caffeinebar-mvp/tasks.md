@@ -233,9 +233,9 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
 - [x] 7. Phase 4 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Phase 5 — Pro Features (Day 5)
+- [x] 8. Phase 5 — Pro Features (Day 5)
 
-  - [ ] 8.1 Implement HalfLifeClock view and computation
+  - [x] 8.1 Implement HalfLifeClock view and computation
     - Create `View/HalfLifeClock.swift`
     - Compute clearance: `lastLog + halfLife × 6` (97% elimination)
     - Half-life: Fast=5h, Normal=5.5h, Slow=6h
@@ -245,7 +245,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 18.1, 18.2, 18.3, 18.4_
 
-  - [ ] 8.2 Implement cut-off time reminder and bedtime config
+  - [x] 8.2 Implement cut-off time reminder and bedtime config
     - Add bedtime picker in SettingsView (time-of-day value)
     - When clearanceTime > bedtime: apply `status.warning` amber tint to icon
     - Post notification "That's your problem tonight." on late log
@@ -253,7 +253,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 19.1, 19.2, 19.3_
 
-  - [ ] 8.3 Implement WeeklyGraphView with Swift Charts
+  - [x] 8.3 Implement WeeklyGraphView with Swift Charts
     - Create `View/WeeklyGraphView.swift`
     - 7-day `BarMark` chart from `dailyHistory`
     - Hover tooltip via `.chartOverlay` showing date + count
@@ -262,7 +262,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 20.1, 20.2, 20.3_
 
-  - [ ] 8.4 Implement SoundPackRegistry and sound pack selector
+  - [x] 8.4 Implement SoundPackRegistry and sound pack selector
     - Create `Engine/SoundPackRegistry.swift`
     - Register 4 bundled packs: "Your Mom", "Gordon Ramsay", "NASA Mission Control", "The Accountant"
     - Add sound pack selector in SettingsView (Pro-gated)
@@ -270,14 +270,14 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: Audio & Media Agent**
     - _Requirements: 21.1, 21.2, 21.3_
 
-  - [ ] 8.5 Implement Free tier upsell notification at Cup 4
+  - [x] 8.5 Implement Free tier upsell notification at Cup 4
     - Post native macOS notification: "Cup 4. Something is about to happen. Unlock CaffeineBar Pro to find out."
     - Fire only when `tier == .free` AND `cupCount == 4`
     - At most once per logical day
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 22.1, 22.2_
 
-  - [ ] 8.6 Implement Pro-feature blur gate
+  - [x] 8.6 Implement Pro-feature blur gate
     - HalfLifeClock and WeeklyGraphView: `.overlay(.ultraThinMaterial)` + "Unlock Pro" CTA when Free
     - ShareCard control hidden behind Pro gate
     - Never delete or hide logged data based on tier
@@ -285,7 +285,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 23.1, 23.2, 23.3_
 
-  - [ ]* 8.7 Write property tests for Pro features
+  - [x]* 8.7 Write property tests for Pro features
     - **Property 13: Half-life clearance time computation**
     - **Property 14: Cut-off warning fires correctly**
     - **Property 24: Upsell notification fires correctly**
@@ -293,14 +293,14 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Validates: Requirements 18.1, 18.2, 19.2, 19.3, 22.1, 22.2, 21.2, 21.3**
     - **Owner: QA & Accessibility Agent**
 
-  - [ ]* 8.8 Write unit tests for half-life math
+  - [x]* 8.8 Write unit tests for half-life math
     - Test Fast/Normal/Slow profiles
     - Test zero-cup edge case (no clearance time)
     - Test pre-midnight log (clearance on next calendar day)
     - **Owner: QA & Accessibility Agent**
     - _Requirements: 55.1, 55.2, 55.3_
 
-- [ ] 9. Phase 5 Checkpoint
+- [x] 9. Phase 5 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 10. Phase 6 — Licensing, Settings & Share (Day 6)

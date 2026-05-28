@@ -9,7 +9,7 @@
 import SwiftUI
 
 /// The main popover view displayed when the user clicks the MenuBarIcon.
-/// Fixed size 260×320pt, `.ultraThinMaterial` background.
+/// Fixed size 260×400pt, `.ultraThinMaterial` background.
 @available(macOS 14.0, *)
 struct MenuBarExtraView: View {
 
@@ -25,49 +25,65 @@ struct MenuBarExtraView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Top section: hero count + button (fixed)
+            // Top: hero count + button + half-life
             topSection
 
             Divider()
                 .padding(.horizontal, 12)
 
-            // Middle section: timestamps (scrollable, fills remaining space)
+            // Middle: scrollable content area
             middleSection
 
             Divider()
                 .padding(.horizontal, 12)
 
-            // Bottom toolbar: Meeting Mode + Settings (fixed)
+            // Bottom: always-visible toolbar
             bottomToolbar
         }
-        .frame(width: 260, height: 320) // Fixed size — no jumping
-        .background(.ultraThinMaterial) // Req 2.2
+        .frame(width: 260, height: 400)
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - Top Section
 
     private var topSection: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             // Header
-            Text("Today's Coffee")
-                .font(.system(.caption, weight: .medium))
+            Text("TODAY'S COFFEE")
+                .font(.system(.caption2, weight: .semibold))
                 .foregroundStyle(.tertiary)
-                .textCase(.uppercase)
+                .tracking(0.5)
 
-            // Hero cup count (Req 2.3)
+            // Hero cup count
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("\(store.todayCount)")
-                    .font(.system(size: 48, weight: .heavy, design: .rounded))
+                    .font(.system(size: 44, weight: .heavy, design: .rounded))
                     .dynamicTypeSize(...DynamicTypeSize.accessibility3)
                     .contentTransition(.numericText())
                 Text(store.todayCount == 1 ? "cup" : "cups")
-                    .font(.system(.body, design: .rounded))
+                    .font(.system(.callout, design: .rounded))
                     .foregroundStyle(.secondary)
             }
 
-            // "+1 Coffee" button (Req 2.4)
+            // Half-life clock — shown inline when Pro and cups > 0
+            if store.todayCount > 0, let lastTimestamp = store.todayTimestamps.last {
+                HalfLifeClock(
+                    lastLogTimestamp: lastTimestamp,
+                    metabolismProfile: store.metabolismProfile,
+                    tier: license.resolvedTier
+                )
+                .proGated(tier: license.resolvedTier)
+                .padding(.vertical, 2)
+            }
+
+            // "+1 Coffee" button
             Button {
                 store.logCup()
+                UpsellNotifier.postUpsellIfNeeded(
+                    cupCount: store.todayCount,
+                    tier: license.resolvedTier,
+                    resetHour: store.resetHour
+                )
                 if !store.keepPopoverOpen {
                     dismiss()
                 }
@@ -79,7 +95,7 @@ struct MenuBarExtraView: View {
             .controlSize(.large)
             .padding(.horizontal, 4)
 
-            // Undo button (Req 4.1–4.4)
+            // Undo button
             if store.todayCount > 0 {
                 Button("Undo last coffee") {
                     store.undoLastCup()
@@ -88,69 +104,90 @@ struct MenuBarExtraView: View {
                 .font(.system(.caption, weight: .medium))
                 .foregroundStyle(.secondary)
             } else {
-                // Invisible placeholder to prevent layout shift
-                Text(" ")
-                    .font(.system(.caption, weight: .medium))
-                    .hidden()
+                Text(" ").font(.caption).hidden()
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
     }
 
-    // MARK: - Middle Section (Timestamps / Empty State)
+    // MARK: - Middle Section
 
     private var middleSection: some View {
-        Group {
-            if store.todayCount == 0 {
-                // Empty state (Req 8.1)
-                VStack(spacing: 8) {
-                    Spacer()
-                    Image(systemName: "cup.and.saucer.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.quaternary)
-                    Text("Engine cold.\nLog your first cup.")
-                        .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                    Spacer()
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 10) {
+                if store.todayCount == 0 {
+                    // Empty state
+                    emptyState
+                } else {
+                    // Timestamps
+                    timestampsList
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                // Timestamps list (Req 2.5)
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Today's Log")
-                            .font(.system(.caption2, weight: .semibold))
-                            .foregroundStyle(.tertiary)
-                            .textCase(.uppercase)
-                            .padding(.bottom, 2)
 
-                        ForEach(Array(store.todayTimestamps.reversed().enumerated()), id: \.offset) { _, timestamp in
-                            HStack(spacing: 6) {
-                                Text("☕")
-                                    .font(.system(.caption2))
-                                Text(timestamp, format: .dateTime.hour().minute())
-                                    .font(.system(.caption, design: .monospaced))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 8)
+                // Weekly chart — always shown (blurred for Free)
+                weeklyChartSection
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 8)
+        }
+        .padding(.horizontal, 16)
+        .frame(maxHeight: .infinity)
+    }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "cup.and.saucer.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(.quaternary)
+            Text("Engine cold. Log your first cup.")
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Timestamps
+
+    private var timestampsList: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("TODAY'S LOG")
+                .font(.system(.caption2, weight: .semibold))
+                .foregroundStyle(.tertiary)
+                .tracking(0.3)
+
+            ForEach(Array(store.todayTimestamps.reversed().enumerated()), id: \.offset) { _, timestamp in
+                HStack(spacing: 6) {
+                    Text("☕")
+                        .font(.system(.caption2))
+                    Text(timestamp, format: .dateTime.hour().minute())
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 16)
             }
         }
-        .frame(maxHeight: .infinity)
+    }
+
+    // MARK: - Weekly Chart
+
+    private var weeklyChartSection: some View {
+        WeeklyGraphView(
+            history: store.dailyHistory,
+            todayCount: store.todayCount,
+            cutoffThreshold: 4
+        )
+        .proGated(tier: license.resolvedTier)
+        .padding(.top, 4)
     }
 
     // MARK: - Bottom Toolbar
 
     private var bottomToolbar: some View {
         HStack {
-            // Meeting Mode toggle (Req 16.1, 16.2)
+            // Meeting Mode toggle
             Button {
                 meetingMode.toggle()
             } label: {
@@ -170,7 +207,7 @@ struct MenuBarExtraView: View {
 
             Spacer()
 
-            // Settings gear (Req 2.6)
+            // Settings gear
             Button {
                 NSApp.setActivationPolicy(.regular)
                 NSApp.activate(ignoringOtherApps: true)

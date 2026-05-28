@@ -2,33 +2,43 @@
 //  SettingsView.swift
 //  CaffeineBar
 //
-//  SwiftUI Frontend Agent — Requirements: 5.2, 6.5, 11.1, 11.2, 11.3, 11.4, 15.1, 15.2, 17.1, 17.2, 17.3, 37.2
-//  Settings form with reset hour picker, Office Mode toggles, sound controls, and streak stats.
+//  SwiftUI Frontend Agent — Requirements: 5.2, 6.5, 11.1, 11.2, 11.3, 11.4, 15.1, 15.2, 17.1, 17.2, 17.3, 19.1, 37.2
+//  Settings form with reset hour picker, bedtime & cut-off config, Office Mode toggles, sound controls, and streak stats.
 //
 
 import SwiftUI
 
-/// Settings view providing the daily reset hour picker, Office Mode controls,
-/// and streak statistics. Presentable from the settings gear in MenuBarExtraView.
+/// Settings view providing the daily reset hour picker, bedtime & cut-off config,
+/// Office Mode controls, and streak statistics. Presentable from the settings gear in MenuBarExtraView.
 @available(macOS 14.0, *)
 struct SettingsView: View {
 
     // MARK: - Environment
 
     @Environment(CupStore.self) private var store
+    @Environment(LicenseManager.self) private var license
 
     // MARK: - Body
 
     var body: some View {
         Form {
+            // Current Plan (tier switcher for dev, plan display for production)
+            planSection
+
             // Reset hour picker (Req 5.2)
             resetHourSection
+
+            // Bedtime & Cut-off (Req 19.1, 19.2, 19.3)
+            bedtimeCutOffSection
 
             // Office Mode (Req 17.1, 17.2, 17.3)
             officeModeSection
 
             // Sound (Req 11.4, 15.2)
             soundSection
+
+            // Sound Packs (Req 21.1, 21.2, 21.3)
+            soundPackSection
 
             // Streak stats (Req 6.5)
             streakStatsSection
@@ -37,10 +47,122 @@ struct SettingsView: View {
             syncNoteSection
         }
         .formStyle(.grouped)
-        .frame(width: 360, height: 400)
+        .frame(width: 380, height: 540)
     }
 
     // MARK: - Sections
+
+    /// Current plan display with tier switcher (dev mode).
+    /// In production, this will show the plan + license key entry.
+    private var planSection: some View {
+        Section {
+            // Current tier badge
+            HStack(spacing: 10) {
+                Image(systemName: license.tierIcon)
+                    .font(.system(.title2))
+                    .foregroundStyle(tierColor)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("CaffeineBar \(license.tierDisplayName)")
+                        .font(.system(.body, weight: .semibold))
+                    Text(tierDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                // Tier badge pill
+                Text(license.tierDisplayName.uppercased())
+                    .font(.system(.caption2, weight: .bold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(tierColor.opacity(0.15), in: Capsule())
+                    .foregroundStyle(tierColor)
+            }
+            .padding(.vertical, 4)
+
+            // Dev-mode tier picker
+            Picker("Plan", selection: Binding(
+                get: { license.resolvedTier },
+                set: { license.setTier($0) }
+            )) {
+                Text("Free").tag(LicenseTier.free)
+                Text("Pro — $9.99").tag(LicenseTier.pro)
+                Text("Ultra — $14.99").tag(LicenseTier.ultra)
+            }
+            .pickerStyle(.segmented)
+
+            // Feature comparison
+            if license.resolvedTier == .free {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Upgrade to unlock:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    featureRow("Half-life clock", icon: "clock.arrow.circlepath")
+                    featureRow("Weekly graph", icon: "chart.bar.fill")
+                    featureRow("Cut-off reminders", icon: "moon.zzz.fill")
+                    featureRow("4 sound packs", icon: "speaker.wave.3.fill")
+                    featureRow("Share streak card", icon: "square.and.arrow.up")
+                }
+                .padding(.top, 4)
+            }
+
+            if license.resolvedTier == .pro {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Ultra adds:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    featureRow("iCloud sync across Macs", icon: "icloud.fill")
+                    featureRow("Apple Health integration", icon: "heart.fill")
+                    featureRow("Siri Shortcuts", icon: "wand.and.stars")
+                    featureRow("Annual Wrapped card", icon: "gift.fill")
+                    featureRow("Custom sound import", icon: "waveform.badge.plus")
+                }
+                .padding(.top, 4)
+            }
+
+            if license.resolvedTier == .ultra {
+                Label("All features unlocked", systemImage: "checkmark.seal.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+                    .padding(.top, 4)
+            }
+        } header: {
+            Text("Your Plan")
+        }
+    }
+
+    /// A single feature row for the upgrade comparison.
+    private func featureRow(_ text: String, icon: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(.caption2))
+                .foregroundStyle(.secondary)
+                .frame(width: 14)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.primary)
+        }
+    }
+
+    /// Description text for the current tier.
+    private var tierDescription: String {
+        switch license.resolvedTier {
+        case .free: return "Basic logging + 3 free sounds"
+        case .pro: return "Full escalation + analytics"
+        case .ultra: return "Everything + sync + health"
+        }
+    }
+
+    /// Resolved color for the current tier.
+    private var tierColor: Color {
+        switch license.resolvedTier {
+        case .free: return .secondary
+        case .pro: return .orange
+        case .ultra: return .purple
+        }
+    }
 
     /// Picker for the daily reset hour, 0–23, displayed in 12-hour format.
     private var resetHourSection: some View {
@@ -51,6 +173,47 @@ struct SettingsView: View {
                     Text(formattedHour(hour))
                         .tag(hour)
                 }
+            }
+        }
+    }
+
+    /// Bedtime picker and cut-off status (Reqs 19.1, 19.2, 19.3).
+    /// Only the picker is shown for all users; the cut-off indicator is Pro/Ultra gated.
+    private var bedtimeCutOffSection: some View {
+        Section("Bedtime & Cut-off") {
+            @Bindable var store = store
+            DatePicker(
+                "Bedtime",
+                selection: $store.bedtime,
+                displayedComponents: .hourAndMinute
+            )
+            .help("Target bedtime for cut-off warnings")
+
+            if license.resolvedTier >= .pro {
+                if let lastLog = store.todayTimestamps.last {
+                    let isBeyond = CutOffReminder.isBeyondCutOff(
+                        lastLogTimestamp: lastLog,
+                        profile: store.metabolismProfile,
+                        bedtime: store.bedtime
+                    )
+                    if isBeyond {
+                        Label("Caffeine will be active past bedtime", systemImage: "moon.zzz.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    } else {
+                        Label("On track for bedtime", systemImage: "checkmark.circle")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                } else {
+                    Label("No cups logged today", systemImage: "cup.and.saucer")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Label("Cut-off alerts require Pro", systemImage: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -79,6 +242,28 @@ struct SettingsView: View {
 
             Toggle("Auto-mute on calls", isOn: $store.autoMuteOnCalls)
                 .help("Automatically mute during calls (Zoom, FaceTime)")
+        }
+    }
+
+    /// Sound pack selector, Pro-gated (Reqs 21.1, 21.2, 21.3).
+    private var soundPackSection: some View {
+        Section("Sound Packs") {
+            @Bindable var store = store
+            let isPro = license.resolvedTier >= .pro
+
+            Picker("Sound Pack", selection: $store.selectedSoundPack) {
+                ForEach(SoundPackRegistry.allPacks) { pack in
+                    Text(pack.displayName)
+                        .tag(pack.id)
+                }
+            }
+            .disabled(!isPro)
+
+            if !isPro {
+                Label("Requires Pro", systemImage: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
