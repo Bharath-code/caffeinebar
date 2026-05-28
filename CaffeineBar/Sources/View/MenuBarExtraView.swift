@@ -9,7 +9,7 @@
 import SwiftUI
 
 /// The main popover view displayed when the user clicks the MenuBarIcon.
-/// Fixed width 260pt, dynamic height, `.ultraThinMaterial` background.
+/// Fixed size 260×320pt, `.ultraThinMaterial` background.
 @available(macOS 14.0, *)
 struct MenuBarExtraView: View {
 
@@ -19,139 +19,166 @@ struct MenuBarExtraView: View {
     @Environment(LicenseManager.self) private var license
     @Environment(MeetingMode.self) private var meetingMode
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openWindow) private var openWindow
 
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Hero cup count (Req 2.3)
-            heroCupCount
+        VStack(spacing: 0) {
+            // Top section: hero count + button (fixed)
+            topSection
 
-            // "+1 Coffee" button (Req 2.4, 3.1–3.5)
-            logButton
+            Divider()
+                .padding(.horizontal, 12)
 
-            // Undo affordance (Req 4.1–4.4)
-            if store.todayCount > 0 {
-                undoButton
-            }
+            // Middle section: timestamps (scrollable, fills remaining space)
+            middleSection
 
-            // Today's timestamps or empty state (Req 2.5, 8.1, 8.2)
-            timestampsOrEmptyState
+            Divider()
+                .padding(.horizontal, 12)
 
-            Spacer(minLength: 0)
-
-            // Settings gear in bottom-right corner (Req 2.6)
-            settingsRow
+            // Bottom toolbar: Meeting Mode + Settings (fixed)
+            bottomToolbar
         }
-        .padding()
-        .frame(width: 260) // Fixed width 260pt (Req 2.1, 24.3)
+        .frame(width: 260, height: 320) // Fixed size — no jumping
         .background(.ultraThinMaterial) // Req 2.2
     }
 
-    // MARK: - Subviews
+    // MARK: - Top Section
 
-    /// Hero cup count display with heavy rounded font (Req 2.3).
-    private var heroCupCount: some View {
-        Text("\(store.todayCount)")
-            .font(.system(size: 44, weight: .heavy, design: .rounded))
-            .dynamicTypeSize(...DynamicTypeSize.accessibility3)
-    }
+    private var topSection: some View {
+        VStack(spacing: 10) {
+            // Header
+            Text("Today's Coffee")
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(.tertiary)
+                .textCase(.uppercase)
 
-    /// "+1 Coffee" button with borderedProminent style and large control size (Req 2.4).
-    /// Dismisses popover after log unless keepPopoverOpen is true (Req 3.3, 3.4).
-    /// No confirmation dialog (Req 3.5).
-    private var logButton: some View {
-        Button("+1 Coffee") {
-            store.logCup()
-            if !store.keepPopoverOpen {
-                dismiss()
+            // Hero cup count (Req 2.3)
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\(store.todayCount)")
+                    .font(.system(size: 48, weight: .heavy, design: .rounded))
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+                    .contentTransition(.numericText())
+                Text(store.todayCount == 1 ? "cup" : "cups")
+                    .font(.system(.body, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+
+            // "+1 Coffee" button (Req 2.4)
+            Button {
+                store.logCup()
+                if !store.keepPopoverOpen {
+                    dismiss()
+                }
+            } label: {
+                Label("+1 Coffee", systemImage: "plus")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding(.horizontal, 4)
+
+            // Undo button (Req 4.1–4.4)
+            if store.todayCount > 0 {
+                Button("Undo last coffee") {
+                    store.undoLastCup()
+                }
+                .buttonStyle(.plain)
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(.secondary)
+            } else {
+                // Invisible placeholder to prevent layout shift
+                Text(" ")
+                    .font(.system(.caption, weight: .medium))
+                    .hidden()
             }
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
     }
 
-    /// "Undo last coffee" button shown only when todayCount > 0 (Req 4.1).
-    /// Wired to ⌘+Z keyboard shortcut (Req 4.4).
-    private var undoButton: some View {
-        Button("Undo last coffee") {
-            store.undoLastCup()
-        }
-        .keyboardShortcut("z", modifiers: .command)
-        .buttonStyle(.plain)
-        .font(.caption)
-        .foregroundStyle(.secondary)
-    }
+    // MARK: - Middle Section (Timestamps / Empty State)
 
-    /// Today's log timestamps or empty state (Reqs 2.5, 8.1, 8.2).
-    private var timestampsOrEmptyState: some View {
+    private var middleSection: some View {
         Group {
             if store.todayCount == 0 {
                 // Empty state (Req 8.1)
-                emptyState
+                VStack(spacing: 8) {
+                    Spacer()
+                    Image(systemName: "cup.and.saucer.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.quaternary)
+                    Text("Engine cold.\nLog your first cup.")
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 // Timestamps list (Req 2.5)
-                timestampsList
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(Array(store.todayTimestamps.reversed().enumerated()), id: \.offset) { _, timestamp in
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(.secondary.opacity(0.3))
+                                    .frame(width: 4, height: 4)
+                                Text(timestamp, format: .dateTime.hour().minute())
+                                    .font(.system(.caption, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+                }
+                .padding(.horizontal, 16)
             }
         }
+        .frame(maxHeight: .infinity)
     }
 
-    /// Empty state: low-opacity SF Symbol + copy (Req 8.1).
-    private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "cup.and.saucer.fill")
-                .font(.system(size: 32))
-                .foregroundStyle(.secondary)
-                .opacity(0.4)
-            Text("Engine cold. Log your first cup.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-    }
+    // MARK: - Bottom Toolbar
 
-    /// Today's log timestamps in monospaced caption font (Req 2.5).
-    private var timestampsList: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(Array(store.todayTimestamps.enumerated()), id: \.offset) { _, timestamp in
-                Text(timestamp, format: .dateTime.hour().minute())
-                    .font(.system(.caption, design: .monospaced))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// Settings gear icon in the bottom-right corner (Req 2.6)
-    /// and Meeting Mode toggle (Req 16.1, 16.2, 16.3).
-    private var settingsRow: some View {
+    private var bottomToolbar: some View {
         HStack {
             // Meeting Mode toggle (Req 16.1, 16.2)
             Button {
                 meetingMode.toggle()
             } label: {
                 HStack(spacing: 4) {
-                    Image(systemName: meetingMode.isActive ? "speaker.slash.fill" : "speaker.slash")
+                    Image(systemName: meetingMode.isActive ? "speaker.slash.fill" : "speaker.wave.2")
+                        .font(.system(.caption))
                     if meetingMode.isActive {
-                        // Visual indicator: small filled circle when active (Req 16.3)
                         Circle()
                             .fill(.orange)
-                            .frame(width: 6, height: 6)
+                            .frame(width: 5, height: 5)
                     }
                 }
             }
             .buttonStyle(.plain)
             .foregroundStyle(meetingMode.isActive ? .orange : .secondary)
-            .help(meetingMode.isActive ? "Meeting Mode: ON — audio suppressed" : "Meeting Mode: OFF")
+            .help(meetingMode.isActive ? "Meeting Mode: ON" : "Meeting Mode: OFF")
 
             Spacer()
 
+            // Settings gear (Req 2.6)
             Button {
-                // Settings action — will open SettingsView in a later task
+                NSApp.setActivationPolicy(.regular)
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "settings")
             } label: {
                 Image(systemName: "gearshape")
+                    .font(.system(.caption))
             }
             .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Settings")
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
     }
 }

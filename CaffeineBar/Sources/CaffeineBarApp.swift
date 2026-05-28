@@ -30,8 +30,10 @@ struct CaffeineBarApp: App {
     // MARK: - Sparkle
 
     /// Sparkle updater controller for in-app updates (Req 50).
+    /// `startingUpdater: false` during development — set to `true` for release builds
+    /// once the EdDSA signing key is configured in the appcast.
     private let updaterController = SPUStandardUpdaterController(
-        startingUpdater: true,
+        startingUpdater: false,
         updaterDelegate: nil,
         userDriverDelegate: nil
     )
@@ -46,5 +48,18 @@ struct CaffeineBarApp: App {
         .environment(cupStore)
         .environment(licenseManager)
         .environment(meetingMode)
+
+        Window("CaffeineBar Settings", id: "settings") {
+            SettingsView()
+                .environment(cupStore)
+                .environment(licenseManager)
+                .onDisappear {
+                    // Revert to accessory when settings closes
+                    NSApp.setActivationPolicy(.accessory)
+                }
+        }
+        .windowResizability(.contentSize)
+        .defaultSize(width: 380, height: 420)
+        .windowStyle(.titleBar)
     }
 }

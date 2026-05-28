@@ -131,7 +131,8 @@ final class CupStore {
     }
 
     /// When true, the popover remains open after a log action (Req 3.4).
-    var keepPopoverOpen: Bool = false {
+    /// Defaults to true — most users want to see the count update.
+    var keepPopoverOpen: Bool = true {
         didSet { persistAll() }
     }
 
