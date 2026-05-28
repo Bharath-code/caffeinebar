@@ -303,9 +303,9 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
 - [x] 9. Phase 5 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Phase 6 — Licensing, Settings & Share (Day 6)
+- [x] 10. Phase 6 — Licensing, Settings & Share (Day 6)
 
-  - [ ] 10.1 Implement LicenseManager with Keychain storage
+  - [x] 10.1 Implement LicenseManager with Keychain storage
     - Create `Licensing/LicenseManager.swift` as `@Observable`
     - Define `LicenseTier` enum: `.free`, `.pro`, `.ultra` (Comparable)
     - Store license key in Keychain only (`kSecClassGenericPassword`)
@@ -315,7 +315,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: Security & Licensing Agent**
     - _Requirements: 34.1, 34.2, 34.3, 38.3, 39.1_
 
-  - [ ] 10.2 Implement client-side signature verification
+  - [x] 10.2 Implement client-side signature verification
     - Embed hardcoded public key in bundle
     - Parse license key as JSON payload
     - Verify ECDSA signature via `SecKeyVerifySignature`
@@ -324,7 +324,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: Security & Licensing Agent**
     - _Requirements: 40.1, 40.2, 40.3_
 
-  - [ ] 10.3 Implement offline validation cache with graceful degradation
+  - [x] 10.3 Implement offline validation cache with graceful degradation
     - Cache positive validation for 30 days
     - Weekly background re-check
     - On revocation/expiry: degrade to `.free`
@@ -333,7 +333,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: Security & Licensing Agent**
     - _Requirements: 41.1, 41.2, 41.3, 41.4_
 
-  - [ ] 10.4 Implement PriceVariant build flag
+  - [x] 10.4 Implement PriceVariant build flag
     - Create `Licensing/PriceVariant.swift`
     - Build flag: `PRICE_VARIANT` = "7.99" or "9.99"
     - Display matching price in SettingsView
@@ -341,7 +341,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: Security & Licensing Agent**
     - _Requirements: 42.1, 42.2, 42.3, 42.4_
 
-  - [ ] 10.5 Build complete SettingsView
+  - [x] 10.5 Build complete SettingsView
     - Reset hour picker (0–23)
     - Bedtime picker (time-of-day)
     - Metabolism profile picker ("Fast metabolizer" / "Normal metabolizer" / "Slow metabolizer")
@@ -357,7 +357,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 5.2, 6.5, 11.4, 15.2, 17.1, 18.3, 19.1, 21.2, 37.2, 38.3, 38.4, 42.2, 42.3, 43.1_
 
-  - [ ] 10.6 Implement ShareCardView
+  - [x] 10.6 Implement ShareCardView
     - Create `View/ShareCardView.swift`
     - Offscreen render via `ImageRenderer` at native scale
     - Include: cup count, streakDays, personalRecord, `caffeinebar.app` watermark
@@ -366,14 +366,14 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 7.1, 7.2, 7.3, 7.4_
 
-  - [ ] 10.7 Implement privacy policy in-app view
+  - [x] 10.7 Implement privacy policy in-app view
     - In-app privacy policy view accessible from SettingsView
     - State: no telemetry, all data local, only network call is license check
     - Host same text at stable URL on caffeinebar.app
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 43.1, 43.2, 43.3_
 
-  - [ ]* 10.8 Write property tests for licensing
+  - [x]* 10.8 Write property tests for licensing
     - **Property 16: Tier gating never deletes data**
     - **Property 19: License key exclusion from UserDefaults**
     - **Property 20: Signature verification correctness**
@@ -382,7 +382,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Validates: Requirements 23.2, 34, 40, 41, 42**
     - **Owner: QA & Accessibility Agent**
 
-  - [ ]* 10.9 Write unit tests for license signature verification
+  - [x]* 10.9 Write unit tests for license signature verification
     - Valid key signed with correct private key → resolves tier
     - Malformed payload → rejected
     - Wrong private key → rejected
@@ -390,7 +390,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: QA & Accessibility Agent**
     - _Requirements: 56.1, 56.2, 56.3, 56.4_
 
-- [ ] 11. Phase 6 Checkpoint
+- [x] 11. Phase 6 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Phase 7 — Accessibility, Build & QA (Day 7)

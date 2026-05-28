@@ -2,8 +2,9 @@
 //  SettingsView.swift
 //  CaffeineBar
 //
-//  SwiftUI Frontend Agent — Requirements: 5.2, 6.5, 11.1, 11.2, 11.3, 11.4, 15.1, 15.2, 17.1, 17.2, 17.3, 19.1, 37.2
-//  Settings form with reset hour picker, bedtime & cut-off config, Office Mode toggles, sound controls, and streak stats.
+//  SwiftUI Frontend Agent — Requirements: 5.2, 6.5, 11.4, 15.2, 17.1, 18.3, 19.1, 21.2, 37.2, 38.3, 38.4, 42.2, 42.3, 43.1
+//  Settings form with reset hour picker, bedtime & cut-off config, metabolism profile,
+//  Office Mode toggles, sound controls, license key entry, price display, streak stats, and privacy policy link.
 //
 
 import SwiftUI
@@ -18,36 +19,65 @@ struct SettingsView: View {
     @Environment(CupStore.self) private var store
     @Environment(LicenseManager.self) private var license
 
+    // MARK: - State
+
+    @State private var showingPrivacyPolicy = false
+
+    // MARK: - Local State
+
+    /// License key text field input (Req 38.3).
+    @State private var licenseKeyInput: String = ""
+
+    /// Whether a license validation is in progress.
+    @State private var isValidating: Bool = false
+
+    /// Result message shown after license validation attempt.
+    @State private var validationMessage: String?
+
     // MARK: - Body
 
     var body: some View {
-        Form {
-            // Current Plan (tier switcher for dev, plan display for production)
-            planSection
+        ScrollView {
+            Form {
+                // Current Plan (tier switcher for dev, plan display for production)
+                planSection
 
-            // Reset hour picker (Req 5.2)
-            resetHourSection
+                // License key entry (Req 38.3, 38.4)
+                licenseKeySection
 
-            // Bedtime & Cut-off (Req 19.1, 19.2, 19.3)
-            bedtimeCutOffSection
+                // Price display (Req 42.2, 42.3)
+                priceDisplaySection
 
-            // Office Mode (Req 17.1, 17.2, 17.3)
-            officeModeSection
+                // Reset hour picker (Req 5.2)
+                resetHourSection
 
-            // Sound (Req 11.4, 15.2)
-            soundSection
+                // Bedtime & Cut-off (Req 19.1, 18.3)
+                bedtimeCutOffSection
 
-            // Sound Packs (Req 21.1, 21.2, 21.3)
-            soundPackSection
+                // Office Mode (Req 17.1, 17.2, 17.3)
+                officeModeSection
 
-            // Streak stats (Req 6.5)
-            streakStatsSection
+                // Sound (Req 11.4, 15.2)
+                soundSection
 
-            // iCloud sync note (Req 37.2)
-            syncNoteSection
+                // Sound Packs (Req 21.1, 21.2, 21.3)
+                soundPackSection
+
+                // Streak stats (Req 6.5)
+                streakStatsSection
+
+                // iCloud sync note (Req 37.2)
+                syncNoteSection
+
+                // Privacy policy (Req 43.1)
+                privacyPolicySection
+            }
+            .formStyle(.grouped)
         }
-        .formStyle(.grouped)
-        .frame(width: 380, height: 540)
+        .frame(width: 380, height: 600)
+        .sheet(isPresented: $showingPrivacyPolicy) {
+            PrivacyPolicyView()
+        }
     }
 
     // MARK: - Sections
@@ -88,7 +118,7 @@ struct SettingsView: View {
                 set: { license.setTier($0) }
             )) {
                 Text("Free").tag(LicenseTier.free)
-                Text("Pro — $9.99").tag(LicenseTier.pro)
+                Text("Pro — \(PriceVariant.priceString)").tag(LicenseTier.pro)
                 Text("Ultra — $14.99").tag(LicenseTier.ultra)
             }
             .pickerStyle(.segmented)
@@ -177,7 +207,7 @@ struct SettingsView: View {
         }
     }
 
-    /// Bedtime picker and cut-off status (Reqs 19.1, 19.2, 19.3).
+    /// Bedtime picker, metabolism profile picker, and cut-off status (Reqs 18.3, 19.1, 19.2, 19.3).
     /// Only the picker is shown for all users; the cut-off indicator is Pro/Ultra gated.
     private var bedtimeCutOffSection: some View {
         Section("Bedtime & Cut-off") {
@@ -188,6 +218,14 @@ struct SettingsView: View {
                 displayedComponents: .hourAndMinute
             )
             .help("Target bedtime for cut-off warnings")
+
+            // Metabolism profile picker (Req 18.3)
+            Picker("Metabolism", selection: $store.metabolismProfile) {
+                Text("Fast metabolizer").tag(MetabolismProfile.fast)
+                Text("Normal metabolizer").tag(MetabolismProfile.normal)
+                Text("Slow metabolizer").tag(MetabolismProfile.slow)
+            }
+            .help("Affects half-life clock and cut-off calculations")
 
             if license.resolvedTier >= .pro {
                 if let lastLog = store.todayTimestamps.last {
@@ -291,7 +329,97 @@ struct SettingsView: View {
         }
     }
 
+    /// License key entry field with Activate button (Reqs 38.3, 38.4).
+    /// Calls `LicenseManager.validateAndStore(licenseKey:)` on activation.
+    private var licenseKeySection: some View {
+        Section("License Key") {
+            HStack {
+                TextField("Paste license key", text: $licenseKeyInput)
+                    .textFieldStyle(.roundedBorder)
+                    .disabled(isValidating)
+
+                Button {
+                    activateLicense()
+                } label: {
+                    if isValidating {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text("Activate")
+                    }
+                }
+                .disabled(licenseKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isValidating)
+            }
+
+            if let message = validationMessage {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(
+                        message.contains("✓") ? .green : .red
+                    )
+            }
+        }
+    }
+
+    /// Price display showing the current A/B variant price (Reqs 42.2, 42.3).
+    private var priceDisplaySection: some View {
+        Section("Pricing") {
+            LabeledContent("CaffeineBar Pro") {
+                Text(PriceVariant.priceString)
+                    .font(.system(.body, weight: .semibold))
+            }
+            Text("One-time purchase. No subscription.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Privacy policy link (Req 43.1).
+    private var privacyPolicySection: some View {
+        Section {
+            Button {
+                showingPrivacyPolicy = true
+            } label: {
+                HStack {
+                    Label("Privacy Policy", systemImage: "hand.raised.fill")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     // MARK: - Helpers
+
+    /// Validates and stores the license key via LicenseManager.
+    private func activateLicense() {
+        let key = licenseKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else { return }
+
+        isValidating = true
+        validationMessage = nil
+
+        Task {
+            let result = await license.validateAndStore(licenseKey: key)
+
+            await MainActor.run {
+                isValidating = false
+                switch result {
+                case .success(let tier):
+                    validationMessage = "✓ Activated: \(tier == .ultra ? "Ultra" : "Pro")"
+                    licenseKeyInput = ""
+                    PriceVariant.recordConversion()
+                case .invalidSignature:
+                    validationMessage = "✗ Invalid license key"
+                case .malformed:
+                    validationMessage = "✗ Malformed license key"
+                }
+            }
+        }
+    }
 
     /// Formats a 24-hour integer (0–23) into 12-hour display (e.g., "12:00 AM", "1:00 AM").
     private func formattedHour(_ hour: Int) -> String {

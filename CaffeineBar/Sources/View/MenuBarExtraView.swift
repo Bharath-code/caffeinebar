@@ -185,8 +185,10 @@ struct MenuBarExtraView: View {
 
     // MARK: - Bottom Toolbar
 
+    @State private var showShareCopied = false
+
     private var bottomToolbar: some View {
-        HStack {
+        HStack(spacing: 12) {
             // Meeting Mode toggle
             Button {
                 meetingMode.toggle()
@@ -204,6 +206,34 @@ struct MenuBarExtraView: View {
             .buttonStyle(.plain)
             .foregroundStyle(meetingMode.isActive ? .orange : .secondary)
             .help(meetingMode.isActive ? "Meeting Mode: ON" : "Meeting Mode: OFF")
+
+            // Share streak card (Pro-gated, Req 7.4)
+            if license.resolvedTier >= .pro && store.todayCount > 0 {
+                Button {
+                    let card = ShareCardView(
+                        cupCount: store.todayCount,
+                        streakDays: store.streakDays,
+                        personalRecord: store.personalRecord
+                    )
+                    card.renderToPasteboard()
+                    showShareCopied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        showShareCopied = false
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(.caption))
+                        if showShareCopied {
+                            Text("Copied!")
+                                .font(.system(.caption2, weight: .medium))
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(showShareCopied ? .green : .secondary)
+                .help("Copy streak card to clipboard")
+            }
 
             Spacer()
 
