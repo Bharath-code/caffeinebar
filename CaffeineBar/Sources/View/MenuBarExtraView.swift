@@ -72,7 +72,7 @@ struct MenuBarExtraView: View {
                     dismiss()
                 }
             } label: {
-                Label("+1 Coffee", systemImage: "plus")
+                Label("+1 Coffee", systemImage: "cup.and.saucer.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -121,11 +121,16 @@ struct MenuBarExtraView: View {
                 // Timestamps list (Req 2.5)
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 4) {
+                        Text("Today's Log")
+                            .font(.system(.caption2, weight: .semibold))
+                            .foregroundStyle(.tertiary)
+                            .textCase(.uppercase)
+                            .padding(.bottom, 2)
+
                         ForEach(Array(store.todayTimestamps.reversed().enumerated()), id: \.offset) { _, timestamp in
                             HStack(spacing: 6) {
-                                Circle()
-                                    .fill(.secondary.opacity(0.3))
-                                    .frame(width: 4, height: 4)
+                                Text("☕")
+                                    .font(.system(.caption2))
                                 Text(timestamp, format: .dateTime.hour().minute())
                                     .font(.system(.caption, design: .monospaced))
                                     .foregroundStyle(.secondary)
