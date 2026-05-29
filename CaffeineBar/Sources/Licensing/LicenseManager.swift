@@ -194,7 +194,9 @@ final class LicenseManager {
 
     /// Accepts special dev keys for testing purposes.
     /// "DEV-PRO" → .pro, "DEV-ULTRA" → .ultra
+    /// ⚠️ Only available in DEBUG builds — stripped from release.
     func validateDevKey(_ key: String) -> LicenseTier? {
+        #if DEBUG
         switch key.uppercased() {
         case "DEV-PRO":
             return .pro
@@ -203,6 +205,9 @@ final class LicenseManager {
         default:
             return nil
         }
+        #else
+        return nil
+        #endif
     }
 
     // MARK: - Types

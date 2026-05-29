@@ -113,7 +113,8 @@ struct SettingsView: View {
             }
             .padding(.vertical, 4)
 
-            // Dev-mode tier picker
+            // Dev-mode tier picker — DEBUG ONLY
+            #if DEBUG
             Picker("Plan", selection: Binding(
                 get: { license.resolvedTier },
                 set: { license.setTier($0) }
@@ -123,6 +124,7 @@ struct SettingsView: View {
                 Text("Ultra — $14.99").tag(LicenseTier.ultra)
             }
             .pickerStyle(.segmented)
+            #endif
 
             // Feature comparison
             if license.resolvedTier == .free {
