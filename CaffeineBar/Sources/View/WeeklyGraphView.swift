@@ -93,12 +93,13 @@ struct WeeklyGraphView: View {
                 .font(.system(.caption2, weight: .semibold))
                 .foregroundStyle(.tertiary)
                 .tracking(0.3)
+                .padding(.top, 4)
 
             // Chart
             Chart(chartData) { entry in
                 BarMark(
                     x: .value("Day", entry.dayLabel),
-                    y: .value("Cups", hasAnyData ? max(entry.count, 0) : 1)
+                    y: .value("Cups", entry.count == 0 ? 0.3 : Double(entry.count))
                 )
                 .foregroundStyle(barColor(for: entry))
                 .opacity(barOpacity(for: entry))
@@ -167,7 +168,7 @@ struct WeeklyGraphView: View {
 
     private func barOpacity(for entry: DayEntry) -> Double {
         if !hasAnyData { return 0.3 }
-        if entry.count == 0 { return 0.0 }
+        if entry.count == 0 { return 0.15 }
         return 1.0
     }
 

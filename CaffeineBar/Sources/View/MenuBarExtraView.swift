@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 // MARK: - PopoverControl Focus Enum (Req 28.4, 28.5)
 
@@ -46,6 +47,7 @@ struct MenuBarExtraView: View {
     @State private var pulseScale: CGFloat = 1.0
     @State private var boldStrokeFadeOpacity: Double = 1.0
     @State private var previousCupCount: Int = 0
+    @State private var logBounceScale: CGFloat = 1.0
 
     // MARK: - Computed
 
@@ -92,7 +94,7 @@ struct MenuBarExtraView: View {
     // MARK: - Top Section
 
     private var topSection: some View {
-        VStack(spacing: 6) {
+        VStack(alignment: .center, spacing: 6) {
             // Header
             Text("TODAY'S COFFEE")
                 .font(.system(.caption2, weight: .semibold))
@@ -108,8 +110,25 @@ struct MenuBarExtraView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Escalation state chip
-            EscalationStateChip(cupCount: store.todayCount)
+            // Escalation state chip + sound preview
+            HStack(spacing: 8) {
+                EscalationStateChip(cupCount: store.todayCount)
+
+                // Sound preview button — plays a system sound as preview feedback
+                if store.todayCount > 0 {
+                    Button {
+                        NSSound(named: "Tink")?.play()
+                    } label: {
+                        Image(systemName: "speaker.wave.1.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+                            .padding(4)
+                            .background(Circle().fill(.secondary.opacity(0.1)))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Preview sound")
+                }
+            }
 
             // Half-life clock — Pro only, cups > 0
             if store.todayCount > 0, let lastTimestamp = store.todayTimestamps.last {
@@ -121,9 +140,30 @@ struct MenuBarExtraView: View {
                 .proGated(tier: license.resolvedTier)
             }
 
+            // Today's caffeine total
+            if store.todayCount > 0 {
+                Text("~\(store.todayCount * 95)mg caffeine today")
+                    .font(.system(.caption2, weight: .medium))
+                    .foregroundStyle(.tertiary)
+            }
+
             // "+1 Coffee" button
             Button {
                 store.logCup()
+                // Haptic feedback on every log
+                NSHapticFeedbackManager.defaultPerformer.perform(
+                    .alignment,
+                    performanceTime: .now
+                )
+                // Visual feedback bounce — stronger scale
+                withAnimation(.spring(response: 0.15, dampingFraction: 0.4)) {
+                    logBounceScale = 1.15
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                        logBounceScale = 1.0
+                    }
+                }
                 triggerEscalationAnimation(for: store.todayCount)
                 UpsellNotifier.postUpsellIfNeeded(
                     cupCount: store.todayCount,
@@ -134,8 +174,14 @@ struct MenuBarExtraView: View {
                     dismiss()
                 }
             } label: {
-                Label("+1 Coffee", systemImage: "cup.and.saucer.fill")
-                    .frame(maxWidth: .infinity)
+                HStack {
+                    Label("+1 Coffee", systemImage: "cup.and.saucer.fill")
+                    Spacer()
+                    Text("⌘1")
+                        .font(.system(.caption2, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
@@ -171,7 +217,7 @@ struct MenuBarExtraView: View {
             .dynamicTypeSize(...DynamicTypeSize.accessibility3)
             .contentTransition(reduceMotion ? .opacity : .numericText())
             .offset(x: reduceMotion ? 0 : shakeOffset)
-            .scaleEffect(reduceMotion ? 1.0 : pulseScale)
+            .scaleEffect(reduceMotion ? logBounceScale : pulseScale * logBounceScale)
             .opacity(reduceMotion && store.todayCount == 4 ? boldStrokeFadeOpacity : 1.0)
             .fontWeight(reduceMotion && store.todayCount == 4 ? .black : .heavy)
             .overlay {
@@ -242,7 +288,7 @@ struct MenuBarExtraView: View {
                 }
                 .scrollIndicators(.never)
                 .padding(.horizontal, 16)
-                .frame(maxHeight: .infinity)
+                .frame(minHeight: 80, maxHeight: .infinity)
             }
 
             Divider()
@@ -252,6 +298,7 @@ struct MenuBarExtraView: View {
             weeklyChartSection
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
+                .frame(height: 140)
         }
         .frame(maxHeight: .infinity)
     }
@@ -275,28 +322,48 @@ struct MenuBarExtraView: View {
 
     private var timestampsList: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("TODAY'S LOG")
-                .font(.system(.caption2, weight: .semibold))
-                .foregroundStyle(.tertiary)
-                .tracking(0.3)
+            HStack {
+                Text("TODAY'S LOG")
+                    .font(.system(.caption2, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .tracking(0.3)
+                Spacer()
+                if let lastLog = store.todayTimestamps.last {
+                    let minutesAgo = max(1, Int(Date().timeIntervalSince(lastLog) / 60))
+                    Text("\(minutesAgo) min ago")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.quaternary)
+                }
+            }
 
             ForEach(Array(store.todayTimestamps.reversed().enumerated()), id: \.offset) { index, timestamp in
-                HStack(spacing: 6) {
-                    Text("☕")
-                        .font(.system(.caption2))
-                    Text(timestamp, format: .dateTime.hour().minute())
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(cupTimestampLabel(cupNumber: store.todayCount - index, timestamp: timestamp))
-                .focusable()
-                .focused($focusedControl, equals: .historyItem(index))
+                timestampRow(index: index, timestamp: timestamp)
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Today's Log History")
+    }
+
+    @ViewBuilder
+    private func timestampRow(index: Int, timestamp: Date) -> some View {
+        let cupNumber = store.todayCount - index
+        let numberColor: Color = cupNumber >= 5 ? .statusDanger : (cupNumber == 4 ? .statusWarning : .gray)
+        HStack(spacing: 6) {
+            Text("#\(cupNumber)")
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(numberColor)
+            Text("·")
+                .font(.system(size: 10))
+                .foregroundColor(.gray)
+            Text(timestamp, format: .dateTime.hour().minute())
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(cupTimestampLabel(cupNumber: cupNumber, timestamp: timestamp))
+        .focusable()
+        .focused($focusedControl, equals: .historyItem(index))
     }
 
     private func cupTimestampLabel(cupNumber: Int, timestamp: Date) -> String {
@@ -368,6 +435,18 @@ struct MenuBarExtraView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(showShareCopied ? .green : .secondary)
+            }
+
+            // Streak badge
+            if store.streakDays > 0 {
+                HStack(spacing: 2) {
+                    Image(systemName: "flame.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                    Text("\(store.streakDays)")
+                        .font(.system(.caption2, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()

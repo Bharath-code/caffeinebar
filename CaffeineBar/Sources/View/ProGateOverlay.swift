@@ -34,9 +34,13 @@ struct ProGateOverlay: ViewModifier {
                                 .font(.system(.title3))
                                 .foregroundStyle(.secondary)
 
-                            Text("Unlock Pro")
+                            Text("Unlock the ambulance 🚑")
                                 .font(.system(.caption, weight: .semibold))
                                 .foregroundStyle(.primary)
+
+                            Text("$9.99 one-time")
+                                .font(.system(.caption2))
+                                .foregroundStyle(.tertiary)
                         }
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 8))
