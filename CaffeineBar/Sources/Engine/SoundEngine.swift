@@ -110,9 +110,9 @@ final class SoundEngine: NSObject, AVAudioPlayerDelegate {
         }
     }
 
-    // MARK: - Private Implementation
+    // MARK: - Internal (Testable) API
 
-    /// Plays a sound asset from the given URL.
+    /// Plays a sound asset from the given URL. Exposed as `internal` for soak testing (Req 57).
     ///
     /// Before allocating a new player:
     /// 1. Stops the prior player (Req 12.2).
@@ -120,7 +120,7 @@ final class SoundEngine: NSObject, AVAudioPlayerDelegate {
     /// 3. Creates a new AVAudioPlayer with delegate set to self (Req 12.3).
     ///
     /// On failure, logs via `os.Logger` and returns without crashing (Req 13.1).
-    private func play(asset url: URL) {
+    func play(asset url: URL) {
         // Stop and release prior player (Req 12.2)
         currentPlayer?.stop()
         currentPlayer = nil

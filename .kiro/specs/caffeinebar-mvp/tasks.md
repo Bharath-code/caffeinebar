@@ -90,7 +90,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 8.1, 8.2_
 
-  - [x]* 3.5 Write property test for undo visibility invariant
+  - [x] 3.5 Write property test for undo visibility invariant
     - **Property 4: Undo visibility invariant**
     - **Validates: Requirements 4.1, 4.2**
     - **Owner: QA & Accessibility Agent**
@@ -140,13 +140,13 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: Core Engine Agent**
     - _Requirements: 36.1, 36.2_
 
-  - [x]* 4.6 Write property tests for daily reset and streak logic
+  - [x] 4.6 Write property tests for daily reset and streak logic
     - **Property 6: Daily reset fires exactly once per logical day**
     - **Property 7: Streak logic on daily reset**
     - **Validates: Requirements 5.1, 5.2, 5.3, 5.4, 6.2, 6.3**
     - **Owner: QA & Accessibility Agent**
 
-  - [x]* 4.7 Write unit tests for timezone/DST reset
+  - [x] 4.7 Write unit tests for timezone/DST reset
     - Test November DST end transition (fall-back)
     - Test March DST start transition (spring-forward)
     - Test in America/Los_Angeles, Asia/Kolkata, Europe/London
@@ -154,7 +154,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: QA & Accessibility Agent**
     - _Requirements: 54.1, 54.2, 54.3_
 
-  - [x]* 4.8 Write property test for escalation state mapping
+  - [x] 4.8 Write property test for escalation state mapping
     - **Property 1: Escalation state mapping is total and deterministic**
     - **Validates: Requirements 1.2, 1.3, 1.4, 1.5, 1.6, 1.7**
     - **Owner: QA & Accessibility Agent**
@@ -217,7 +217,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 15.1, 15.2_
 
-  - [x]* 6.7 Write property tests for sound engine behavior
+  - [x] 6.7 Write property tests for sound engine behavior
     - **Property 9: Cup-to-sound mapping respects tier gating**
     - **Property 10: Audio suppression under mute conditions**
     - **Property 11: Single AVAudioPlayer invariant**
@@ -225,7 +225,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Validates: Requirements 10, 11, 12, 14.3, 16.2, 17.2, 17.3**
     - **Owner: QA & Accessibility Agent**
 
-  - [x]* 6.8 Write property test for call detection logic
+  - [x] 6.8 Write property test for call detection logic
     - **Property 12: Call detection logic**
     - **Validates: Requirements 14.1, 14.2**
     - **Owner: QA & Accessibility Agent**
@@ -285,7 +285,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 23.1, 23.2, 23.3_
 
-  - [x]* 8.7 Write property tests for Pro features
+  - [x] 8.7 Write property tests for Pro features
     - **Property 13: Half-life clearance time computation**
     - **Property 14: Cut-off warning fires correctly**
     - **Property 24: Upsell notification fires correctly**
@@ -293,7 +293,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Validates: Requirements 18.1, 18.2, 19.2, 19.3, 22.1, 22.2, 21.2, 21.3**
     - **Owner: QA & Accessibility Agent**
 
-  - [x]* 8.8 Write unit tests for half-life math
+  - [x] 8.8 Write unit tests for half-life math
     - Test Fast/Normal/Slow profiles
     - Test zero-cup edge case (no clearance time)
     - Test pre-midnight log (clearance on next calendar day)
@@ -373,7 +373,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 43.1, 43.2, 43.3_
 
-  - [x]* 10.8 Write property tests for licensing
+  - [x] 10.8 Write property tests for licensing
     - **Property 16: Tier gating never deletes data**
     - **Property 19: License key exclusion from UserDefaults**
     - **Property 20: Signature verification correctness**
@@ -382,7 +382,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Validates: Requirements 23.2, 34, 40, 41, 42**
     - **Owner: QA & Accessibility Agent**
 
-  - [x]* 10.9 Write unit tests for license signature verification
+  - [x] 10.9 Write unit tests for license signature verification
     - Valid key signed with correct private key → resolves tier
     - Malformed payload → rejected
     - Wrong private key → rejected
@@ -477,7 +477,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: Build & Release Agent**
     - _Requirements: 52.1, 52.2_
 
-  - [ ]* 12.11 Write SoundEngine soak test (1000+ logs, Instruments Leaks)
+  - [x] 12.11 Write SoundEngine soak test (1000+ logs, Instruments Leaks)
     - Simulate 1000+ sequential `logCup()` calls with sound playback
     - Run under Instruments Leaks template
     - Pass: zero `AVAudioPlayer` instances retained beyond playback cycle
@@ -485,7 +485,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: QA & Accessibility Agent**
     - _Requirements: 57.1, 57.2_
 
-  - [ ]* 12.12 Write unit tests for Office Mode and Meeting Mode
+  - [x] 12.12 Write unit tests for Office Mode and Meeting Mode
     - Test volume clamping at 50% system volume
     - Test haptic routing when haptic-only selected
     - Test Meeting Mode suppression
