@@ -27,6 +27,9 @@ struct CaffeineBarApp: App {
     /// Manual mute override — independent of CallDetector (Req 16).
     @State private var meetingMode = MeetingMode()
 
+    /// Detects active voice/video calls to suppress audio (Req 14).
+    @State private var callDetector = CallDetector()
+
     // MARK: - Computed (Req 29.2)
 
     /// Whether the current state is beyond the user's configured cut-off time.
@@ -57,6 +60,14 @@ struct CaffeineBarApp: App {
             userDriverDelegate: nil
         )
         configureUpdater()
+
+        // Activate call detection polling (Req 14)
+        callDetector.startMonitoring()
+
+        // Wire call state changes to SoundEngine suppression (Req 14.3)
+        callDetector.onCallStateChanged = { isActive in
+            SoundEngine.shared.setCallSuppressed(isActive)
+        }
     }
 
     /// Configures Sparkle to check for updates every 24 hours (Req 50.1).

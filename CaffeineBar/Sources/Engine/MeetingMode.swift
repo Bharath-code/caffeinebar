@@ -27,6 +27,7 @@ import Observation
 /// - **SoundEngine:** `SoundEngine` should check `meetingMode.isActive` before playing
 ///   any asset and suppress playback when true.
 @available(macOS 14.0, *)
+@MainActor
 @Observable
 final class MeetingMode {
 

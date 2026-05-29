@@ -136,25 +136,28 @@ struct WeeklyGraphView: View {
 
     @ViewBuilder
     private var infoRow: some View {
-        if let selected = selectedDay, hasAnyData {
-            tooltipText(for: selected)
-        } else if hasAnyData {
-            let todayEntry = chartData.last
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(Color.accentColor)
-                    .frame(width: 5, height: 5)
-                Text("Today: \(todayEntry?.count ?? 0) cup\(todayEntry?.count == 1 ? "" : "s")")
-                    .font(.system(.caption2, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-        } else {
-            Text("Start logging to see your week")
-                .font(.system(.caption2))
-                .foregroundStyle(.quaternary)
+        Group {
+            if let selected = selectedDay, hasAnyData {
+                tooltipText(for: selected)
+            } else if hasAnyData {
+                let todayEntry = chartData.last
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Color.accentColor)
+                        .frame(width: 5, height: 5)
+                    Text("Today: \(todayEntry?.count ?? 0) cup\(todayEntry?.count == 1 ? "" : "s")")
+                        .font(.system(.caption2, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
                 .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                Text("Start logging to see your week")
+                    .font(.system(.caption2))
+                    .foregroundStyle(.quaternary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
+        .frame(height: 16) // Fixed height prevents layout shift on hover
     }
 
     // MARK: - Helpers

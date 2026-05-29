@@ -39,6 +39,7 @@ struct CachedValidation: Codable {
 /// Observable license state container with Keychain-backed persistence
 /// and client-side ECDSA signature verification.
 @available(macOS 14.0, *)
+@MainActor
 @Observable
 final class LicenseManager {
 
@@ -317,14 +318,14 @@ final class LicenseManager {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: Self.keychainService,
             kSecAttrAccount as String: Self.keychainAccount,
+            kSecAttrAccessGroup as String: "app.caffeinebar.CaffeineBar",
             kSecValueData as String: keyData,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
 
         let status = SecItemAdd(query as CFDictionary, nil)
         if status != errSecSuccess {
-            // Log but don't crash — Keychain write failures are non-fatal
-            print("[LicenseManager] Keychain write failed: \(status)")
+            Self.logger.error("Keychain write failed with status: \(status)")
         }
     }
 
@@ -335,6 +336,7 @@ final class LicenseManager {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: Self.keychainService,
             kSecAttrAccount as String: Self.keychainAccount,
+            kSecAttrAccessGroup as String: "app.caffeinebar.CaffeineBar",
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
@@ -356,7 +358,8 @@ final class LicenseManager {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: Self.keychainService,
-            kSecAttrAccount as String: Self.keychainAccount
+            kSecAttrAccount as String: Self.keychainAccount,
+            kSecAttrAccessGroup as String: "app.caffeinebar.CaffeineBar"
         ]
 
         SecItemDelete(query as CFDictionary)
@@ -398,24 +401,32 @@ final class LicenseManager {
     }
 
     /// Computes the canonical payload string from a JSON dictionary.
-    /// Includes all fields except "signature", sorted by key, serialized as compact JSON.
+    /// Uses JSONSerialization with .sortedKeys for deterministic output.
+    /// Includes all fields except "signature".
     private func computeCanonicalPayload(json: [String: Any]) -> String {
-        let filteredKeys = json.keys.filter { $0 != "signature" }.sorted()
-        var parts: [String] = []
-        for key in filteredKeys {
-            if let value = json[key] {
-                let valueString: String
+        var filtered = json
+        filtered.removeValue(forKey: "signature")
+
+        // Use JSONSerialization with .sortedKeys for deterministic canonical form
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: filtered,
+            options: [.sortedKeys, .withoutEscapingSlashes]
+        ) else {
+            // Fallback: manual construction if serialization fails
+            let sortedKeys = filtered.keys.sorted()
+            let parts = sortedKeys.compactMap { key -> String? in
+                guard let value = filtered[key] else { return nil }
                 if let str = value as? String {
-                    valueString = "\"\(key)\":\"\(str)\""
+                    return "\"\(key)\":\"\(str)\""
                 } else if let num = value as? NSNumber {
-                    valueString = "\"\(key)\":\(num)"
-                } else {
-                    valueString = "\"\(key)\":\"\(String(describing: value))\""
+                    return "\"\(key)\":\(num)"
                 }
-                parts.append(valueString)
+                return "\"\(key)\":\"\(String(describing: value))\""
             }
+            return "{\(parts.joined(separator: ","))}"
         }
-        return "{\(parts.joined(separator: ","))}"
+
+        return String(data: data, encoding: .utf8) ?? "{}"
     }
 
     /// Parses a tier string into a LicenseTier value.

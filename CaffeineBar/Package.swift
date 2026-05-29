@@ -11,7 +11,7 @@ let package = Package(
         .executable(name: "CaffeineBar", targets: ["CaffeineBar"])
     ],
     dependencies: [
-        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0")
+        .package(url: "https://github.com/sparkle-project/Sparkle", .upToNextMinor(from: "2.6.0"))
     ],
     targets: [
         .executableTarget(

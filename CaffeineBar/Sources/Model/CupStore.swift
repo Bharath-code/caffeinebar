@@ -46,6 +46,7 @@ struct DayRecord: Codable, Sendable {
 /// Every write is wrapped in `ProcessInfo.processInfo.performActivity` with
 /// `.userInitiated` to survive lid-close suspension (Req 35).
 @available(macOS 14.0, *)
+@MainActor
 @Observable
 final class CupStore {
 
@@ -93,47 +94,47 @@ final class CupStore {
     private(set) var totalDaysLogged: Int = 0
 
     var resetHour: Int = 0 {
-        didSet { persistAll() }
+        didSet { schedulePersist() }
     }
 
     var bedtime: Date = CupStore.defaultBedtime {
-        didSet { persistAll() }
+        didSet { schedulePersist() }
     }
 
     var metabolismProfile: MetabolismProfile = .normal {
-        didSet { persistAll() }
+        didSet { schedulePersist() }
     }
 
     var isMuted: Bool = false {
-        didSet { persistAll() }
+        didSet { schedulePersist() }
     }
 
     var officeMode: Bool = false {
-        didSet { persistAll() }
+        didSet { schedulePersist() }
     }
 
     /// Whether Office Mode uses haptic-only feedback instead of capped audio (Req 17.3).
     var officeModeHapticOnly: Bool = false {
-        didSet { persistAll() }
+        didSet { schedulePersist() }
     }
 
     /// Defaults to `true` on first launch (Req 15).
     var autoMuteOnCalls: Bool = true {
-        didSet { persistAll() }
+        didSet { schedulePersist() }
     }
 
     var installedSoundPacks: [String] = CupStore.defaultBundledPacks {
-        didSet { persistAll() }
+        didSet { schedulePersist() }
     }
 
     var selectedSoundPack: String = "default" {
-        didSet { persistAll() }
+        didSet { schedulePersist() }
     }
 
     /// When true, the popover remains open after a log action (Req 3.4).
     /// Defaults to true — most users want to see the count update.
     var keepPopoverOpen: Bool = true {
-        didSet { persistAll() }
+        didSet { schedulePersist() }
     }
 
     private(set) var dailyHistory: [DayRecord] = []
@@ -147,6 +148,9 @@ final class CupStore {
 
     /// Timer for scheduling the next daily reset check.
     private var resetTimer: Timer?
+
+    /// Debounce task for batching rapid preference changes into a single persist (performance fix).
+    private var persistDebounceTask: Task<Void, Never>?
 
     // MARK: - Initialization
 
@@ -312,11 +316,25 @@ final class CupStore {
             withTimeInterval: delay,
             repeats: false
         ) { [weak self] _ in
-            self?.evaluateReset()
+            Task { @MainActor in
+                self?.evaluateReset()
+            }
         }
     }
 
     // MARK: - Persistence (Req 35)
+
+    /// Schedules a debounced persist. Rapid preference changes are batched into
+    /// a single write after 300ms of inactivity, avoiding redundant serialization
+    /// of the full state (including potentially large `dailyHistory`).
+    private func schedulePersist() {
+        persistDebounceTask?.cancel()
+        persistDebounceTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            persistAll()
+        }
+    }
 
     /// Persists all mutable state to UserDefaults.
     /// Wrapped in `ProcessInfo.performActivity` with `.userInitiated` to survive

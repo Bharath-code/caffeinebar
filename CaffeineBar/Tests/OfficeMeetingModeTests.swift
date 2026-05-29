@@ -147,6 +147,7 @@ struct OfficeModeTests {
 // MARK: - Meeting Mode Tests
 
 @Suite("MeetingMode suppression and toggle")
+@MainActor
 struct MeetingModeTests {
 
     // MARK: - Toggle (Req 16.1)
@@ -276,6 +277,7 @@ struct MeetingModeTests {
 // MARK: - CupStore Office Mode Defaults Tests
 
 @Suite("CupStore Office Mode defaults")
+@MainActor
 struct CupStoreOfficeModeDefaultsTests {
 
     /// Creates a CupStore backed by an ephemeral UserDefaults suite.
@@ -322,6 +324,7 @@ struct CupStoreOfficeModeDefaultsTests {
 // MARK: - Combined Office Mode + Meeting Mode Tests
 
 @Suite("OfficeMode and MeetingMode interaction")
+@MainActor
 struct OfficeMeetingModeInteractionTests {
 
     @Test("Meeting Mode suppresses audio regardless of Office Mode state")

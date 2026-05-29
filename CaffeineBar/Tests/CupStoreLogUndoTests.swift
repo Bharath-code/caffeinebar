@@ -11,6 +11,7 @@ import Foundation
 @testable import CaffeineBar
 
 @Suite("CupStore logCup and undoLastCup")
+@MainActor
 struct CupStoreLogUndoTests {
 
     /// Creates a CupStore backed by an ephemeral UserDefaults suite.

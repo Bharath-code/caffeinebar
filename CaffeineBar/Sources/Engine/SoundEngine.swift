@@ -22,13 +22,22 @@ import os
 @available(macOS 14.0, *)
 final class SoundEngine: NSObject, AVAudioPlayerDelegate {
 
+    // MARK: - Shared Instance
+
+    /// Shared singleton for global access from views that cannot use environment injection
+    /// (SoundEngine is an NSObject subclass for AVAudioPlayerDelegate conformance).
+    static let shared = SoundEngine()
+
     // MARK: - Properties
 
     /// The single active player instance — at most ONE at any time (Req 12.1).
     private var currentPlayer: AVAudioPlayer?
 
-    /// Whether audio is suppressed by CallDetector or MeetingMode.
-    private var isSuppressed: Bool = false
+    /// Whether audio is suppressed by CallDetector.
+    private var isCallSuppressed: Bool = false
+
+    /// Whether audio is suppressed by MeetingMode.
+    private var isMeetingSuppressed: Bool = false
 
     /// Whether the user has globally muted sound.
     private var isMuted: Bool = false
@@ -51,7 +60,7 @@ final class SoundEngine: NSObject, AVAudioPlayerDelegate {
     ///   - count: The new cup count after logging.
     ///   - tier: The user's current license tier.
     func cupLogged(count: Int, tier: LicenseTier) {
-        guard !isMuted, !isSuppressed else { return }
+        guard !isMuted, !isCallSuppressed, !isMeetingSuppressed else { return }
 
         guard let assetURL = resolveAsset(for: count, tier: tier) else {
             return
@@ -70,14 +79,31 @@ final class SoundEngine: NSObject, AVAudioPlayerDelegate {
         isMuted = muted
     }
 
-    /// Sets the suppression state (called by CallDetector/MeetingMode).
+    /// Sets the call-detection suppression state (called by CallDetector).
     ///
     /// When suppressed, audio playback is silenced while icon escalation
-    /// continues (Req 14.3, 16.2).
+    /// continues (Req 14.3).
+    ///
+    /// - Parameter suppressed: `true` to suppress audio, `false` to resume.
+    func setCallSuppressed(_ suppressed: Bool) {
+        isCallSuppressed = suppressed
+    }
+
+    /// Sets the meeting-mode suppression state (called by MeetingMode toggle).
+    ///
+    /// When suppressed, audio playback is silenced while icon escalation
+    /// continues (Req 16.2).
+    ///
+    /// - Parameter suppressed: `true` to suppress audio, `false` to resume.
+    func setMeetingSuppressed(_ suppressed: Bool) {
+        isMeetingSuppressed = suppressed
+    }
+
+    /// Sets the suppression state (convenience for combined call + meeting state).
     ///
     /// - Parameter suppressed: `true` to suppress audio, `false` to resume.
     func setSuppressed(_ suppressed: Bool) {
-        isSuppressed = suppressed
+        isCallSuppressed = suppressed
     }
 
     /// Configures Office Mode behavior.

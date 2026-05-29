@@ -150,6 +150,11 @@ struct MenuBarExtraView: View {
             // "+1 Coffee" button
             Button {
                 store.logCup()
+                // Play escalation sound via shared SoundEngine (Req 9.3, 12.1)
+                // Sync mute/suppression state before playing
+                SoundEngine.shared.setMuted(store.isMuted)
+                SoundEngine.shared.setMeetingSuppressed(meetingMode.isActive)
+                SoundEngine.shared.cupLogged(count: store.todayCount, tier: license.resolvedTier)
                 // Haptic feedback on every log
                 NSHapticFeedbackManager.defaultPerformer.perform(
                     .alignment,
@@ -191,8 +196,15 @@ struct MenuBarExtraView: View {
 
             // Undo button
             if store.todayCount > 0 {
-                Button("Undo last coffee") {
+                Button {
                     store.undoLastCup()
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("Undo last coffee")
+                        Text("⌘Z")
+                            .font(.system(size: 9, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
                 .buttonStyle(.plain)
                 .font(.system(.caption, weight: .medium))
@@ -320,8 +332,22 @@ struct MenuBarExtraView: View {
 
     // MARK: - Timestamps
 
+    /// Groups timestamps by time of day: Morning (before 12), Afternoon (12-17), Evening (17+)
+    private enum TimeOfDay: String {
+        case morning = "Morning"
+        case afternoon = "Afternoon"
+        case evening = "Evening"
+
+        static func from(_ date: Date) -> TimeOfDay {
+            let hour = Calendar.current.component(.hour, from: date)
+            if hour < 12 { return .morning }
+            if hour < 17 { return .afternoon }
+            return .evening
+        }
+    }
+
     private var timestampsList: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("TODAY'S LOG")
                     .font(.system(.caption2, weight: .semibold))
@@ -336,12 +362,48 @@ struct MenuBarExtraView: View {
                 }
             }
 
-            ForEach(Array(store.todayTimestamps.reversed().enumerated()), id: \.offset) { index, timestamp in
-                timestampRow(index: index, timestamp: timestamp)
+            // Group by time of day
+            let grouped = groupedTimestamps()
+            ForEach(grouped, id: \.period) { group in
+                // Period header
+                Text(group.period)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.quaternary)
+                    .textCase(.uppercase)
+                    .padding(.top, group.period == grouped.first?.period ? 0 : 4)
+
+                ForEach(group.entries, id: \.index) { entry in
+                    timestampRow(index: entry.index, timestamp: entry.timestamp)
+                }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Today's Log History")
+    }
+
+    private struct TimestampGroup {
+        let period: String
+        let entries: [(index: Int, timestamp: Date)]
+    }
+
+    private func groupedTimestamps() -> [TimestampGroup] {
+        let reversed = Array(store.todayTimestamps.reversed().enumerated())
+        var groups: [String: [(index: Int, timestamp: Date)]] = [:]
+        var order: [String] = []
+
+        for (index, timestamp) in reversed {
+            let period = TimeOfDay.from(timestamp).rawValue
+            if groups[period] == nil {
+                order.append(period)
+                groups[period] = []
+            }
+            groups[period]?.append((index: index, timestamp: timestamp))
+        }
+
+        return order.compactMap { period in
+            guard let entries = groups[period] else { return nil }
+            return TimestampGroup(period: period, entries: entries)
+        }
     }
 
     @ViewBuilder
