@@ -5,6 +5,8 @@
 //  SwiftUI Frontend Agent — Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 27.1
 //  Renders escalating menu bar icons based on today's cup count.
 //  Shape conveys state primarily; color is secondary (Req 27.1).
+//  Each escalation state uses a unique SF Symbol shape for color independence:
+//  Outline → Filled → Steam → Lightning → Exclamation → Skull.
 //
 
 import AppKit
@@ -40,7 +42,7 @@ struct IconRenderer {
         case 4:
             return "exclamationmark.triangle.fill"
         default:
-            return "skull.fill"
+            return "xmark.octagon.fill"
         }
     }
 
@@ -76,9 +78,9 @@ struct IconRenderer {
         case 1, 2, 3:
             return Color.primary
         case 4:
-            return Color("status.warning")
+            return .statusWarning
         default:
-            return Color("status.danger")
+            return .statusDanger
         }
     }
 

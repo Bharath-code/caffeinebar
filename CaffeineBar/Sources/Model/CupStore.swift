@@ -243,8 +243,19 @@ final class CupStore {
             // Fire the reset
             // Archive the prior day if todayCount > 0
             if todayCount > 0 {
+                // Use the boundary as the archived day's date (the day that just ended).
+                // On first launch, lastResetDate is .distantPast, so we compute yesterday's
+                // start-of-day to get a meaningful date for the chart lookup.
+                let archivedDate: Date
+                if lastResetDate == .distantPast {
+                    // First reset ever — attribute to yesterday
+                    archivedDate = calendar.startOfDay(for: calendar.date(byAdding: .day, value: -1, to: now) ?? now)
+                } else {
+                    archivedDate = calendar.startOfDay(for: lastResetDate)
+                }
+
                 let record = DayRecord(
-                    date: lastResetDate,
+                    date: archivedDate,
                     count: todayCount,
                     timestamps: todayTimestamps
                 )
@@ -417,8 +428,12 @@ final class CupStore {
             selectedSoundPack = "default"
         }
 
-        // keepPopoverOpen defaults to false (Req 3.4)
-        keepPopoverOpen = defaults.bool(forKey: Keys.keepPopoverOpen)
+        // keepPopoverOpen defaults to true so the popover stays open after logging
+        if defaults.object(forKey: Keys.keepPopoverOpen) != nil {
+            keepPopoverOpen = defaults.bool(forKey: Keys.keepPopoverOpen)
+        } else {
+            keepPopoverOpen = true
+        }
 
         // dailyHistory defaults to []
         if let historyData = defaults.data(forKey: Keys.dailyHistory),

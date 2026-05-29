@@ -24,5 +24,13 @@
 	<true/>
 	<key>SUFeedURL</key>
 	<string>https://caffeinebar.app/appcast.xml</string>
+	<key>NSAccessibilitySupportedFeatures</key>
+	<array>
+		<string>VoiceOver</string>
+		<string>Full Keyboard Access</string>
+		<string>Increase Contrast</string>
+		<string>Reduce Motion</string>
+		<string>Dynamic Type</string>
+	</array>
 </dict>
 </plist>

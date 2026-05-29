@@ -54,6 +54,10 @@ struct HalfLifeClock: View {
                     .font(.system(.caption, weight: .medium))
                     .foregroundStyle(.secondary)
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Color.secondary.opacity(0.08), in: Capsule())
+            .increasedContrastBorder()
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Caffeine clears your system at \(formattedTime)")
         }

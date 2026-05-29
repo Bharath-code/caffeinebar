@@ -98,13 +98,12 @@ struct WeeklyGraphView: View {
             Chart(chartData) { entry in
                 BarMark(
                     x: .value("Day", entry.dayLabel),
-                    y: .value("Cups", hasAnyData ? entry.count : 1)
+                    y: .value("Cups", hasAnyData ? max(entry.count, 0) : 1)
                 )
                 .foregroundStyle(barColor(for: entry))
-                .clipShape(RoundedRectangle(cornerRadius: 3))
                 .opacity(barOpacity(for: entry))
             }
-            .chartYScale(domain: 0...(hasAnyData ? maxCount + 1 : 5))
+            .chartYScale(domain: 0...(maxCount + 2))
             .chartYAxis(.hidden)
             .chartXAxis {
                 AxisMarks { value in
@@ -118,7 +117,7 @@ struct WeeklyGraphView: View {
                 }
             }
             .chartXSelection(value: $selectedDayLabel)
-            .frame(height: 70)
+            .frame(height: 110)
 
             // Info row below chart
             infoRow
@@ -161,14 +160,14 @@ struct WeeklyGraphView: View {
 
     private func barColor(for entry: DayEntry) -> Color {
         if !hasAnyData { return .accentColor }
-        if entry.exceedsCutoff { return Color("status.warning") }
+        if entry.exceedsCutoff { return .statusWarning }
         if entry.isToday { return .accentColor }
         return .accentColor.opacity(0.7)
     }
 
     private func barOpacity(for entry: DayEntry) -> Double {
-        if !hasAnyData { return 0.15 }
-        if entry.count == 0 { return 0.1 }
+        if !hasAnyData { return 0.3 }
+        if entry.count == 0 { return 0.0 }
         return 1.0
     }
 

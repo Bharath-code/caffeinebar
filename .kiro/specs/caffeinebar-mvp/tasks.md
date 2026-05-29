@@ -393,9 +393,9 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
 - [x] 11. Phase 6 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Phase 7 — Accessibility, Build & QA (Day 7)
+- [x] 12. Phase 7 — Accessibility, Build & QA (Day 7)
 
-  - [ ] 12.1 Implement Dynamic Type support
+  - [x] 12.1 Implement Dynamic Type support
     - Hero count with `.dynamicTypeSize(...accessibility3)`
     - At `.accessibility1+`: re-flow horizontal rows to vertical stacks
     - Fixed 260pt width, height grows
@@ -403,7 +403,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 24.1, 24.2, 24.3_
 
-  - [ ] 12.2 Implement Reduce Motion compliance
+  - [x] 12.2 Implement Reduce Motion compliance
     - Check `@Environment(\.accessibilityReduceMotion)`
     - Cup 4 shake → bold-stroke fade-in
     - Cup 5+ pulse → static 5% red material overlay
@@ -411,14 +411,14 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 25.1, 25.2, 25.3_
 
-  - [ ] 12.3 Implement color independence and Increased Contrast
+  - [x] 12.3 Implement color independence and Increased Contrast
     - Icon shape is primary signal (Outline→Filled→Steam→Lightning→Exclamation→Skull)
     - When `@Environment(\.colorSchemeContrast) == .increased`: 1pt solid border on status chips
     - Body text ≥ 4.5:1 contrast on `.ultraThinMaterial` in Light and Dark
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 26.5, 27.1, 27.2_
 
-  - [ ] 12.4 Implement Full Keyboard Access
+  - [x] 12.4 Implement Full Keyboard Access
     - ⌘+1 or Space → log cup
     - ⌘+Z → undo
     - Esc → dismiss popover
@@ -427,7 +427,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 28.1, 28.2, 28.3, 28.4, 28.5_
 
-  - [ ] 12.5 Implement VoiceOver semantic groups and labels
+  - [x] 12.5 Implement VoiceOver semantic groups and labels
     - Group hero-count, log-history, settings with `.accessibilityElement(children: .contain)`
     - MenuBarIcon `accessibilityLabel`: "CaffeineBar. {N} cups logged. {state}."
     - HalfLifeClock label: "Caffeine clears your system at {time}"
@@ -436,20 +436,20 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 29.1, 29.2, 29.3, 29.4_
 
-  - [ ] 12.6 Declare accessibility nutrition labels
+  - [x] 12.6 Declare accessibility nutrition labels
     - Distribution metadata: VoiceOver, Full Keyboard Access, Increase Contrast, Reduce Motion, Dynamic Type
     - Ensure behavioral requirements behind each label are satisfied
     - **Owner: SwiftUI Frontend Agent**
     - _Requirements: 30.1, 30.2_
 
-  - [ ] 12.7 Write popover-vs-menu HIG justification document
+  - [x] 12.7 Write popover-vs-menu HIG justification document
     - Document justification for using `MenuBarExtraStyle.window` (popover) instead of standard menu
     - Cite HalfLifeClock, WeeklyGraphView, sound pack selector, license-key entry as complexity drivers
     - Include in notarization submission package
     - **Owner: QA & Accessibility Agent**
     - _Requirements: 31.1_
 
-  - [ ] 12.8 Create GitHub Actions CI workflow
+  - [x] 12.8 Create GitHub Actions CI workflow
     - `.github/workflows/release.yml`
     - Trigger on tag push matching `v*`
     - Build with `xcodebuild`
@@ -461,7 +461,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: Build & Release Agent**
     - _Requirements: 51.1, 51.2_
 
-  - [ ] 12.9 Integrate Sparkle for in-app updates
+  - [x] 12.9 Integrate Sparkle for in-app updates
     - Link Sparkle as Swift Package dependency
     - Set `SUFeedURL` to `https://caffeinebar.app/appcast.xml`
     - Update checks on launch + every 24 hours
@@ -469,7 +469,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: Build & Release Agent**
     - _Requirements: 50.1, 50.2_
 
-  - [ ] 12.10 Notarization rehearsal on clean VM
+  - [x] 12.10 Notarization rehearsal on clean VM
     - Execute on clean macOS VM with no developer certificates
     - ≥3 days before launch
     - Verify `.dmg` opens without Gatekeeper warnings
@@ -492,7 +492,7 @@ n  - [x]* 1.5 Write property tests for CupStore core operations
     - **Owner: QA & Accessibility Agent**
     - _Requirements: 16, 17_
 
-- [ ] 13. Final Checkpoint — All tests pass, accessibility audit complete
+- [x] 13. Final Checkpoint — All tests pass, accessibility audit complete
   - Ensure all unit tests and property tests pass
   - Ensure Accessibility Inspector audit covers all 6 escalation states × Light/Dark/Increased Contrast
   - Ensure WCAG AA contrast verified for all text-on-surface pairings

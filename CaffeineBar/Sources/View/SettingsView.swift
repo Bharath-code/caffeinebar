@@ -109,6 +109,7 @@ struct SettingsView: View {
                     .padding(.vertical, 3)
                     .background(tierColor.opacity(0.15), in: Capsule())
                     .foregroundStyle(tierColor)
+                    .increasedContrastBorder()
             }
             .padding(.vertical, 4)
 

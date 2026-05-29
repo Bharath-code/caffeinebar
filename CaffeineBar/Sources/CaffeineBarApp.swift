@@ -27,22 +27,65 @@ struct CaffeineBarApp: App {
     /// Manual mute override — independent of CallDetector (Req 16).
     @State private var meetingMode = MeetingMode()
 
+    // MARK: - Computed (Req 29.2)
+
+    /// Whether the current state is beyond the user's configured cut-off time.
+    /// Used to append "Approaching cut-off." to the MenuBarIcon accessibility label.
+    private var menuBarIconIsInCutoff: Bool {
+        guard licenseManager.resolvedTier >= .pro,
+              let lastLog = cupStore.todayTimestamps.last else {
+            return false
+        }
+        return CutOffReminder.isBeyondCutOff(
+            lastLogTimestamp: lastLog,
+            profile: cupStore.metabolismProfile,
+            bedtime: cupStore.bedtime
+        )
+    }
+
     // MARK: - Sparkle
 
-    /// Sparkle updater controller for in-app updates (Req 50).
-    /// `startingUpdater: false` during development — set to `true` for release builds
-    /// once the EdDSA signing key is configured in the appcast.
-    private let updaterController = SPUStandardUpdaterController(
-        startingUpdater: false,
-        updaterDelegate: nil,
-        userDriverDelegate: nil
-    )
+    /// Sparkle updater controller for in-app updates (Reqs 50.1, 50.2).
+    /// Starts the updater immediately so it checks for updates on launch.
+    /// The 24-hour automatic check interval is configured in `configureUpdater()`.
+    private let updaterController: SPUStandardUpdaterController
+
+    init() {
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+        configureUpdater()
+    }
+
+    /// Configures Sparkle to check for updates every 24 hours (Req 50.1).
+    /// Sparkle's standard user driver automatically prompts the user with
+    /// release notes and an install button when an update is available (Req 50.2).
+    private func configureUpdater() {
+        let updater = updaterController.updater
+        updater.automaticallyChecksForUpdates = true
+        updater.updateCheckInterval = 86_400 // 24 hours in seconds
+    }
 
     // MARK: - Body
 
     var body: some Scene {
-        MenuBarExtra("CaffeineBar", systemImage: "cup.and.saucer") {
+        MenuBarExtra {
             MenuBarExtraView()
+        } label: {
+            // Req 29.2: Dynamic accessibility label based on cup count and escalation state
+            Label {
+                Text("CaffeineBar")
+            } icon: {
+                Image(systemName: IconRenderer.systemImageName(for: cupStore.todayCount))
+            }
+            .accessibilityLabel(
+                IconRenderer.accessibilityLabel(
+                    for: cupStore.todayCount,
+                    isInCutoff: menuBarIconIsInCutoff
+                )
+            )
         }
         .menuBarExtraStyle(.window)
         .environment(cupStore)
