@@ -41,7 +41,7 @@ struct CaffeineBarApp: App {
         }
         return CutOffReminder.isBeyondCutOff(
             lastLogTimestamp: lastLog,
-            profile: cupStore.metabolismProfile,
+            halfLifeHours: cupStore.effectiveHalfLifeHours,
             bedtime: cupStore.bedtime
         )
     }

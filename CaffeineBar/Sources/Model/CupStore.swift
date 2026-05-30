@@ -30,6 +30,29 @@ enum MetabolismProfile: String, Codable, CaseIterable, Sendable {
     }
 }
 
+// MARK: - HormonalContraceptive
+
+/// Whether the user uses estrogen-based hormonal contraception.
+/// Estrogen inhibits CYP1A2, the primary enzyme that metabolizes caffeine,
+/// significantly prolonging caffeine half-life (up to 2-3x).
+enum HormonalContraceptive: String, Codable, CaseIterable, Sendable {
+    /// No hormonal contraception — standard metabolism.
+    case none
+    /// Estrogen-containing contraception (pill, patch, ring).
+    /// Caffeine half-life can increase by ~2x due to CYP1A2 inhibition.
+    case estrogen
+
+    /// Half-life multiplier factor.
+    /// - none: 1.0 (no change)
+    /// - estrogen: 2.0 (doubles half-life)
+    var halfLifeMultiplier: Double {
+        switch self {
+        case .none:     return 1.0
+        case .estrogen: return 2.0
+        }
+    }
+}
+
 // MARK: - DayRecord
 
 /// Archived record of a single day's coffee intake.
@@ -71,6 +94,9 @@ final class CupStore {
         static let dailyHistory = "caffeinebar.dailyHistory"
         static let dataVersion = "caffeinebar.dataVersion"
         static let keepPopoverOpen = "caffeinebar.keepPopoverOpen"
+        static let userAge = "caffeinebar.userAge"
+        static let bodyWeight = "caffeinebar.bodyWeight"
+        static let hormonalContraceptive = "caffeinebar.hormonalContraceptive"
     }
 
     // MARK: - Default Values
@@ -137,9 +163,86 @@ final class CupStore {
         didSet { schedulePersist() }
     }
 
+    /// User's age in years (optional). Used to personalize half-life calculation.
+    /// When nil, no age-based adjustment is applied.
+    /// Clamped to 13...120 on write.
+    var userAge: Int? = nil {
+        didSet {
+            schedulePersist()
+        }
+    }
+
+    /// Sets userAge with clamping. Use this instead of setting userAge directly from UI.
+    func setUserAge(_ age: Int?) {
+        if let age {
+            userAge = min(max(age, 13), 120)
+        } else {
+            userAge = nil
+        }
+    }
+
+    /// User's body weight in kg (optional). Used to personalize half-life calculation.
+    /// When nil, no weight-based adjustment is applied.
+    /// Clamped to 30.0...250.0 on write.
+    var bodyWeight: Double? = nil {
+        didSet {
+            schedulePersist()
+        }
+    }
+
+    /// Sets bodyWeight with clamping. Use this instead of setting bodyWeight directly from UI.
+    func setBodyWeight(_ weight: Double?) {
+        if let weight {
+            bodyWeight = min(max(weight, 30.0), 250.0)
+        } else {
+            bodyWeight = nil
+        }
+    }
+
+    /// Whether the user uses estrogen-based hormonal contraception.
+    /// Defaults to `.none`.
+    var hormonalContraceptive: HormonalContraceptive = .none {
+        didSet { schedulePersist() }
+    }
+
     private(set) var dailyHistory: [DayRecord] = []
 
     /// Schema version — set to 1 from first build (Req 32).
+    /// Effective caffeine half-life in hours, adjusted by the user's metabolism profile,
+    /// age, body weight, and hormonal contraception status.
+    ///
+    /// Base half-life comes from the selected `MetabolismProfile`:
+    /// - fast:   5.0 hours
+    /// - normal: 5.5 hours
+    /// - slow:   6.0 hours
+    ///
+    /// Adjustments applied in order:
+    /// 1. Age: ±0.015 hours per year relative to 30 years old.
+    /// 2. Weight: ±0.003 hours per kg relative to 70 kg.
+    /// 3. Hormonal contraception: ×2.0 multiplier (estrogen-based).
+    /// Result is clamped to [3.0, 12.0] hours.
+    var effectiveHalfLifeHours: Double {
+        var halfLife = metabolismProfile.halfLifeHours
+
+        if let age = userAge {
+            // Age adjustment: older → slower metabolism (longer half-life)
+            let ageDelta = Double(age) - 30.0
+            halfLife += ageDelta * 0.015
+        }
+
+        if let weight = bodyWeight {
+            // Weight adjustment: higher weight → slightly longer half-life (larger volume of distribution)
+            let weightDelta = weight - 70.0
+            halfLife += weightDelta * 0.003
+        }
+
+        // Hormonal contraception multiplier (applied after age/weight adjustments)
+        halfLife *= hormonalContraceptive.halfLifeMultiplier
+
+        // Upper bound raised to 12.0 to accommodate the 2x hormonal multiplier
+        return min(max(halfLife, 3.0), 12.0)
+    }
+
     private(set) var dataVersion: Int = 1
 
     // MARK: - Dependencies
@@ -366,6 +469,19 @@ final class CupStore {
             defaults.set(keepPopoverOpen, forKey: Keys.keepPopoverOpen)
             defaults.set(dataVersion, forKey: Keys.dataVersion)
 
+            // Age, weight, and hormonal contraception
+            if let age = userAge {
+                defaults.set(age, forKey: Keys.userAge)
+            } else {
+                defaults.removeObject(forKey: Keys.userAge)
+            }
+            if let weight = bodyWeight {
+                defaults.set(weight, forKey: Keys.bodyWeight)
+            } else {
+                defaults.removeObject(forKey: Keys.bodyWeight)
+            }
+            defaults.set(hormonalContraceptive.rawValue, forKey: Keys.hormonalContraceptive)
+
             if let historyData = try? JSONEncoder().encode(dailyHistory) {
                 defaults.set(historyData, forKey: Keys.dailyHistory)
             }
@@ -453,6 +569,24 @@ final class CupStore {
             keepPopoverOpen = true
         }
 
+        // userAge defaults to nil (no adjustment)
+        if defaults.object(forKey: Keys.userAge) != nil {
+            userAge = defaults.integer(forKey: Keys.userAge)
+        }
+
+        // bodyWeight defaults to nil (no adjustment)
+        if defaults.object(forKey: Keys.bodyWeight) != nil {
+            bodyWeight = defaults.double(forKey: Keys.bodyWeight)
+        }
+
+        // hormonalContraceptive defaults to .none
+        if let hcRaw = defaults.string(forKey: Keys.hormonalContraceptive),
+           let hc = HormonalContraceptive(rawValue: hcRaw) {
+            hormonalContraceptive = hc
+        } else {
+            hormonalContraceptive = .none
+        }
+
         // dailyHistory defaults to []
         if let historyData = defaults.data(forKey: Keys.dailyHistory),
            let decoded = try? JSONDecoder().decode([DayRecord].self, from: historyData) {
@@ -494,12 +628,6 @@ final class CupStore {
 
     // MARK: - Migration (Req 36)
 
-    /// Logger for migration-related events.
-    private static let migrationLogger = Logger(
-        subsystem: "app.caffeinebar",
-        category: "migration"
-    )
-
     /// Schedules background migration when dailyHistory exceeds 1000 entries.
     /// Migration to SQLite/Core Data runs on a utility-QoS background queue
     /// and never blocks the main thread (Req 36.1, 36.2).
@@ -507,24 +635,25 @@ final class CupStore {
         guard dailyHistory.count > 1000 else { return }
 
         let entryCount = dailyHistory.count
-        CupStore.migrationLogger.info(
+        migrationLog.info(
             "dailyHistory has \(entryCount) entries (>1000). Scheduling background migration."
         )
 
         DispatchQueue.global(qos: .utility).async {
-            CupStore.migrationLogger.info(
+            migrationLog.info(
                 "Background migration task started for \(entryCount) daily history entries. (SQLite/Core Data migration scaffold — actual migration deferred to post-MVP.)"
             )
             // TODO: Implement actual SQLite/Core Data migration here.
-            // This scaffold confirms the background dispatch path works.
-            // The migration will:
-            // 1. Open/create the SQLite database
-            // 2. Batch-insert dailyHistory records
-            // 3. On success, trim the UserDefaults-backed array
-            // 4. Update caffeinebar.dataVersion
-            CupStore.migrationLogger.info(
+            migrationLog.info(
                 "Background migration task completed (scaffold). No data was migrated in this MVP build."
             )
         }
     }
 }
+
+// MARK: - Module-level logger (not actor-isolated, safe to use from any context)
+
+private let migrationLog = Logger(
+    subsystem: "app.caffeinebar",
+    category: "migration"
+)

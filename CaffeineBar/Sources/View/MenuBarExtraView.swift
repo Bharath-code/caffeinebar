@@ -134,7 +134,7 @@ struct MenuBarExtraView: View {
             if store.todayCount > 0, let lastTimestamp = store.todayTimestamps.last {
                 HalfLifeClock(
                     lastLogTimestamp: lastTimestamp,
-                    metabolismProfile: store.metabolismProfile,
+                    halfLifeHours: store.effectiveHalfLifeHours,
                     tier: license.resolvedTier
                 )
                 .proGated(tier: license.resolvedTier)

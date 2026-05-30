@@ -54,6 +54,9 @@ struct SettingsView: View {
                 // Bedtime & Cut-off (Req 19.1, 18.3)
                 bedtimeCutOffSection
 
+                // Metabolism Personalization
+                metabolismSection
+
                 // Office Mode (Req 17.1, 17.2, 17.3)
                 officeModeSection
 
@@ -222,19 +225,11 @@ struct SettingsView: View {
             )
             .help("Target bedtime for cut-off warnings")
 
-            // Metabolism profile picker (Req 18.3)
-            Picker("Metabolism", selection: $store.metabolismProfile) {
-                Text("Fast metabolizer").tag(MetabolismProfile.fast)
-                Text("Normal metabolizer").tag(MetabolismProfile.normal)
-                Text("Slow metabolizer").tag(MetabolismProfile.slow)
-            }
-            .help("Affects half-life clock and cut-off calculations")
-
             if license.resolvedTier >= .pro {
                 if let lastLog = store.todayTimestamps.last {
                     let isBeyond = CutOffReminder.isBeyondCutOff(
                         lastLogTimestamp: lastLog,
-                        profile: store.metabolismProfile,
+                        halfLifeHours: store.effectiveHalfLifeHours,
                         bedtime: store.bedtime
                     )
                     if isBeyond {
@@ -253,6 +248,87 @@ struct SettingsView: View {
                 }
             } else {
                 Label("Cut-off alerts require Pro", systemImage: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Metabolism profile picker with optional age, weight, and hormonal contraception personalization.
+    /// Age, weight, and hormonal status are Pro/Ultra gated.
+    private var metabolismSection: some View {
+        Section("Metabolism") {
+            @Bindable var store = store
+
+            Picker("Profile", selection: $store.metabolismProfile) {
+                Text("Fast (5.0h)").tag(MetabolismProfile.fast)
+                Text("Normal (5.5h)").tag(MetabolismProfile.normal)
+                Text("Slow (6.0h)").tag(MetabolismProfile.slow)
+            }
+            .help("Base caffeine half-life profile (always available)")
+
+            let isPro = license.resolvedTier >= .pro
+
+            if isPro {
+                Group {
+                    // Age input
+                    HStack {
+                        TextField("Age", value: Binding(
+                            get: { store.userAge },
+                            set: { store.setUserAge($0) }
+                        ), format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 60)
+                            .help("Enter 13-120")
+                        Text("years")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .help("Older age slows caffeine clearance")
+
+                    // Weight input
+                    HStack {
+                        TextField("Weight", value: Binding(
+                            get: { store.bodyWeight },
+                            set: { store.setBodyWeight($0) }
+                        ), format: .number.precision(.fractionLength(0)))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 60)
+                            .help("Enter 30-250")
+                        Text("kg")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .help("Higher weight increases caffeine distribution volume")
+
+                    // Hormonal contraception picker
+                    Picker("Contraception", selection: $store.hormonalContraceptive) {
+                        Text("None").tag(HormonalContraceptive.none)
+                        Text("Estrogen-based").tag(HormonalContraceptive.estrogen)
+                    }
+                    .help("Estrogen contraception can double caffeine half-life")
+                }
+
+                // Show the effective half-life breakdown
+                let baseHL = store.metabolismProfile.halfLifeHours
+                let effectiveHL = store.effectiveHalfLifeHours
+                let hcMultiplier = store.hormonalContraceptive.halfLifeMultiplier
+                HStack(spacing: 4) {
+                    Image(systemName: "person.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    if abs(effectiveHL - baseHL) > 0.01 || hcMultiplier > 1.01 {
+                        Text("Effective half-life: \(effectiveHL, specifier: "%.1f") hrs")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Half-life: \(baseHL, specifier: "%.1f") hrs (add personal details to adjust)")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            } else {
+                Label("Personalized half-life requires Pro", systemImage: "lock.fill")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

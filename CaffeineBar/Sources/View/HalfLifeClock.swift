@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-/// Displays the caffeine clearance time based on the user's last log and metabolism profile.
+/// Displays the caffeine clearance time based on the user's last log and metabolism data.
 ///
 /// Clearance is defined as ~6 half-lives (97% elimination):
 /// `clearanceTime = lastLogTimestamp + halfLifeHours × 6 hours`
@@ -21,14 +21,14 @@ struct HalfLifeClock: View {
     // MARK: - Inputs
 
     let lastLogTimestamp: Date
-    let metabolismProfile: MetabolismProfile
+    let halfLifeHours: Double
     let tier: LicenseTier
 
     // MARK: - Computed
 
     /// The projected time at which caffeine from the last dose is 97% eliminated.
     var clearanceTime: Date {
-        let clearanceSeconds = metabolismProfile.halfLifeHours * 6.0 * 3600.0
+        let clearanceSeconds = halfLifeHours * 6.0 * 3600.0
         return lastLogTimestamp.addingTimeInterval(clearanceSeconds)
     }
 

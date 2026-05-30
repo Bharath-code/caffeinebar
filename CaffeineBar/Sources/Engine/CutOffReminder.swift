@@ -28,18 +28,18 @@ enum CutOffReminder {
 
     // MARK: - Clearance Computation
 
-    /// Computes the clearance time for the most recent log based on the metabolism profile.
+    /// Computes the clearance time for the most recent log based on the effective half-life.
     /// Clearance is defined as ~6 half-lives (97% elimination).
     ///
     /// - Parameters:
     ///   - lastLogTimestamp: The timestamp of the most recent cup logged.
-    ///   - profile: The user's selected metabolism profile.
+    ///   - halfLifeHours: The effective caffeine half-life in hours (adjusted for age/weight).
     /// - Returns: The projected wall-clock time at which caffeine clears the system.
     static func clearanceTime(
         lastLogTimestamp: Date,
-        profile: MetabolismProfile
+        halfLifeHours: Double
     ) -> Date {
-        let clearanceHours = profile.halfLifeHours * 6.0
+        let clearanceHours = halfLifeHours * 6.0
         return lastLogTimestamp.addingTimeInterval(clearanceHours * 3600)
     }
 
@@ -51,15 +51,15 @@ enum CutOffReminder {
     ///
     /// - Parameters:
     ///   - lastLogTimestamp: The timestamp of the most recent cup logged.
-    ///   - profile: The user's selected metabolism profile.
+    ///   - halfLifeHours: The effective caffeine half-life in hours (adjusted for age/weight).
     ///   - bedtime: The user's configured bedtime (only hour/minute are used).
     /// - Returns: `true` if the clearance time is later than bedtime on the relevant day.
     static func isBeyondCutOff(
         lastLogTimestamp: Date,
-        profile: MetabolismProfile,
+        halfLifeHours: Double,
         bedtime: Date
     ) -> Bool {
-        let clearance = clearanceTime(lastLogTimestamp: lastLogTimestamp, profile: profile)
+        let clearance = clearanceTime(lastLogTimestamp: lastLogTimestamp, halfLifeHours: halfLifeHours)
         let bedtimeToday = resolvedBedtime(for: clearance, bedtime: bedtime)
         return clearance > bedtimeToday
     }
@@ -95,12 +95,12 @@ enum CutOffReminder {
     ///
     /// - Parameters:
     ///   - lastLogTimestamp: The timestamp of the cup just logged.
-    ///   - profile: The user's metabolism profile.
+    ///   - halfLifeHours: The effective caffeine half-life in hours (adjusted for age/weight).
     ///   - bedtime: The user's configured bedtime.
     ///   - tier: The user's current license tier.
     static func postLateLogNotificationIfNeeded(
         lastLogTimestamp: Date,
-        profile: MetabolismProfile,
+        halfLifeHours: Double,
         bedtime: Date,
         tier: LicenseTier
     ) {
@@ -110,7 +110,7 @@ enum CutOffReminder {
         // Check if clearance exceeds bedtime
         guard isBeyondCutOff(
             lastLogTimestamp: lastLogTimestamp,
-            profile: profile,
+            halfLifeHours: halfLifeHours,
             bedtime: bedtime
         ) else { return }
 
