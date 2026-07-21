@@ -48,6 +48,7 @@ struct MenuBarExtraView: View {
     @State private var boldStrokeFadeOpacity: Double = 1.0
     @State private var previousCupCount: Int = 0
     @State private var logBounceScale: CGFloat = 1.0
+    @State private var activeTab: Int = 0
 
     // MARK: - Computed
 
@@ -288,29 +289,43 @@ struct MenuBarExtraView: View {
 
     private var middleSection: some View {
         VStack(spacing: 0) {
-            // Timestamps — scrollable, takes flexible space
             if store.todayCount == 0 {
                 emptyState
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView(.vertical) {
-                    timestampsList
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 6)
+                Picker("", selection: $activeTab) {
+                    Text("History").tag(0)
+                    Text("Predictor").tag(1)
                 }
-                .scrollIndicators(.never)
+                .pickerStyle(.segmented)
                 .padding(.horizontal, 16)
-                .frame(minHeight: 80, maxHeight: .infinity)
+                .padding(.top, 4)
+                .padding(.bottom, 6)
+
+                if activeTab == 0 {
+                    ScrollView(.vertical) {
+                        timestampsList
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 6)
+                    }
+                    .scrollIndicators(.never)
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 80, maxHeight: .infinity)
+
+                    Divider()
+                        .padding(.horizontal, 12)
+
+                    // Weekly chart — fixed height, always visible
+                    weeklyChartSection
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .frame(height: 140)
+                } else {
+                    predictorView
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.horizontal, 16)
+                }
             }
-
-            Divider()
-                .padding(.horizontal, 12)
-
-            // Weekly chart — fixed height, always visible
-            weeklyChartSection
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(height: 140)
         }
         .frame(maxHeight: .infinity)
     }
@@ -528,5 +543,236 @@ struct MenuBarExtraView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+
+    // MARK: - Predictor View (Reqs: 18, 19 integration)
+
+    private var predictorView: some View {
+        VStack(spacing: 12) {
+            // Chart Area
+            VStack(alignment: .leading, spacing: 4) {
+                Text("CAFFEINE TIMELINE (24H)")
+                    .font(.system(.caption2, weight: .bold))
+                    .foregroundStyle(.tertiary)
+                
+                caffeineCurveChart
+                    .frame(height: 110)
+                    .background(Color.black.opacity(0.15))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                    )
+            }
+
+            // Calculations Grid
+            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                GridRow {
+                    predictorMetricCard(
+                        title: "CURRENT LEVEL",
+                        value: "\(Int(store.caffeineLevel(at: Date()))) mg",
+                        subtitle: currentLevelStatus()
+                    )
+                    predictorMetricCard(
+                        title: "PREDICTED CRASH",
+                        value: formattedCrashTime(),
+                        subtitle: crashSubtitle()
+                    )
+                }
+                GridRow {
+                    predictorMetricCard(
+                        title: "NEXT COFFEE",
+                        value: formattedNextCoffeeTime(),
+                        subtitle: nextCoffeeSubtitle()
+                    )
+                    predictorMetricCard(
+                        title: "BEDTIME LEVEL",
+                        value: "\(Int(store.caffeineLevel(at: resolvedBedtime()))) mg",
+                        subtitle: bedtimeSleepStatus()
+                    )
+                }
+            }
+
+            // Share Timeline Button
+            Button {
+                shareCrashTimeline()
+            } label: {
+                Label(showShareCopied ? "Clipboard Copied! ✅" : "Share Crash Timeline", systemImage: "square.and.arrow.up")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .background(Color.blue.opacity(0.2))
+                    .cornerRadius(6)
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 6)
+        }
+    }
+
+    private func predictorMetricCard(title: String, value: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.secondary)
+                .tracking(0.5)
+            Text(value)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
+            Text(subtitle)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(8)
+        .background(Color.white.opacity(0.03))
+        .cornerRadius(6)
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Color.white.opacity(0.04), lineWidth: 1)
+        )
+    }
+
+    private func currentLevelStatus() -> String {
+        let level = store.caffeineLevel(at: Date())
+        if level > 150 { return "Over-caffeinated ⚡️" }
+        if level > 80 { return "Focused / Alert" }
+        if level > 20 { return "Mild Buzz" }
+        return "Empty"
+    }
+
+    private func formattedCrashTime() -> String {
+        if let crash = store.predictedCrashTime() {
+            return crash.formatted(date: .omitted, time: .shortened)
+        }
+        return "--:--"
+    }
+
+    private func crashSubtitle() -> String {
+        if store.predictedCrashTime() != nil {
+            return "Drops < 30mg"
+        }
+        return store.todayCount > 0 ? "Steady alert zone" : "No active caffeine"
+    }
+
+    private func formattedNextCoffeeTime() -> String {
+        if let next = store.nextCoffeeTime() {
+            if Calendar.current.isDateInToday(next) && abs(next.timeIntervalSinceNow) < 300 {
+                return "Now"
+            }
+            return next.formatted(date: .omitted, time: .shortened)
+        }
+        return "Skip"
+    }
+
+    private func nextCoffeeSubtitle() -> String {
+        if store.nextCoffeeTime() != nil {
+            return "Alert level dip"
+        }
+        return "Too close to bedtime 🚫"
+    }
+
+    private func resolvedBedtime() -> Date {
+        let calendar = Calendar.current
+        let bedtimeComponents = calendar.dateComponents([.hour, .minute], from: store.bedtime)
+        return calendar.date(bySettingHour: bedtimeComponents.hour ?? 22,
+                             minute: bedtimeComponents.minute ?? 0,
+                             second: 0,
+                             of: Date()) ?? Date()
+    }
+
+    private func bedtimeSleepStatus() -> String {
+        let level = store.caffeineLevel(at: resolvedBedtime())
+        return level > 50 ? "Ruin sleep warning! ⚠️" : "Safe for sleep ✅"
+    }
+
+    private var caffeineCurveChart: some View {
+        GeometryReader { geo in
+            let width = geo.size.width
+            let height = geo.size.height
+            let padding: CGFloat = 8
+            let graphHeight = height - padding * 2
+            let graphWidth = width - padding * 2
+
+            let startTime = Date().addingTimeInterval(-8 * 3600)
+            let duration: TimeInterval = 24 * 3600
+
+            let timePoints = stride(from: 0.0, through: 1.0, by: 0.02).map { progress in
+                let date = startTime.addingTimeInterval(progress * duration)
+                return (progress: progress, level: store.caffeineLevel(at: date))
+            }
+            let maxVal = max(100.0, timePoints.map { $0.level }.max() ?? 100.0)
+
+            ZStack {
+                // Grid lines
+                ForEach(Array(stride(from: 50.0, through: maxVal, by: 50.0)), id: \.self) { val in
+                    let y = padding + graphHeight * (1.0 - CGFloat(val / maxVal))
+                    Path { path in
+                        path.move(to: CGPoint(x: padding, y: y))
+                        path.addLine(to: CGPoint(x: width - padding, y: y))
+                    }
+                    .stroke(Color.white.opacity(0.04), lineWidth: 1)
+                }
+
+                // Current time line
+                let currentProgress = CGFloat((Date().timeIntervalSince(startTime)) / duration)
+                if currentProgress >= 0 && currentProgress <= 1 {
+                    let curX = padding + currentProgress * graphWidth
+                    Path { path in
+                        path.move(to: CGPoint(x: curX, y: padding))
+                        path.addLine(to: CGPoint(x: curX, y: height - padding))
+                    }
+                    .stroke(Color.orange.opacity(0.3), style: StrokeStyle(lineWidth: 1.5, dash: [4]))
+                }
+
+                // Curve path
+                Path { path in
+                    guard !timePoints.isEmpty else { return }
+                    let startX = padding + CGFloat(timePoints[0].progress) * graphWidth
+                    let startY = padding + graphHeight * (1.0 - CGFloat(timePoints[0].level / maxVal))
+                    path.move(to: CGPoint(x: startX, y: startY))
+
+                    for pt in timePoints.dropFirst() {
+                        let x = padding + CGFloat(pt.progress) * graphWidth
+                        let y = padding + graphHeight * (1.0 - CGFloat(pt.level / maxVal))
+                        path.addLine(to: CGPoint(x: x, y: y))
+                    }
+                }
+                .stroke(Color.orange, lineWidth: 2)
+
+                // Current level dot
+                if currentProgress >= 0 && currentProgress <= 1 {
+                    let curX = padding + currentProgress * graphWidth
+                    let curY = padding + graphHeight * (1.0 - CGFloat(store.caffeineLevel(at: Date()) / maxVal))
+                    Circle()
+                        .fill(Color.orange)
+                        .frame(width: 6, height: 6)
+                        .position(x: curX, y: curY)
+                }
+            }
+        }
+    }
+
+    private func shareCrashTimeline() {
+        let currentLevel = Int(store.caffeineLevel(at: Date()))
+        let crashVal = formattedCrashTime()
+        let nextCoffeeVal = formattedNextCoffeeTime()
+        
+        let shareText = """
+        ☕️ Caffeine Crash Predictor:
+        • Current Level: \(currentLevel) mg
+        • Crash Predicted: \(crashVal)
+        • Next Coffee: \(nextCoffeeVal)
+        Track your coffee & sleep zones at caffeinebar.app
+        """
+        
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.writeObjects([shareText as NSString])
+        
+        showShareCopied = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            showShareCopied = false
+        }
     }
 }

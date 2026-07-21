@@ -243,6 +243,87 @@ final class CupStore {
         return min(max(halfLife, 3.0), 12.0)
     }
 
+    /// Calculates the active caffeine level (in mg) at a specific date,
+    /// factoring in both today's logs and the previous day's logs for continuity.
+    func caffeineLevel(at date: Date) -> Double {
+        let halfLife = effectiveHalfLifeHours
+        var total: Double = 0.0
+        
+        // Add today's logs
+        for log in todayTimestamps {
+            let seconds = date.timeIntervalSince(log)
+            if seconds >= 0 {
+                let hours = seconds / 3600.0
+                total += 95.0 * pow(0.5, hours / halfLife)
+            }
+        }
+        
+        // Add yesterday's logs if any
+        if let yesterdayRecord = dailyHistory.last {
+            for log in yesterdayRecord.timestamps {
+                let seconds = date.timeIntervalSince(log)
+                if seconds >= 0 {
+                    let hours = seconds / 3600.0
+                    total += 95.0 * pow(0.5, hours / halfLife)
+                }
+            }
+        }
+        
+        return total
+    }
+
+    /// Predicts the exact crash time, defined as when caffeine levels drop below 30mg
+    /// after having been above it.
+    func predictedCrashTime() -> Date? {
+        let now = Date()
+        let current = caffeineLevel(at: now)
+        guard current >= 30.0 else { return nil }
+        
+        // Scan forward up to 24 hours in 5-minute increments
+        for minutes in stride(from: 5, through: 24 * 60, by: 5) {
+            let futureDate = now.addingTimeInterval(Double(minutes) * 60.0)
+            if caffeineLevel(at: futureDate) < 30.0 {
+                return futureDate
+            }
+        }
+        return nil
+    }
+
+    /// Predicts the next coffee window (optimal range between 30mg and 50mg alert levels,
+    /// but at least 6 hours before bedtime).
+    func nextCoffeeTime() -> Date? {
+        let now = Date()
+        let current = caffeineLevel(at: now)
+        
+        // If current level is already below 50mg, the window is now (if bedtime allows)
+        var targetTime = now
+        if current > 50.0 {
+            // Find when it drops to 50mg
+            for minutes in stride(from: 5, through: 24 * 60, by: 5) {
+                let futureDate = now.addingTimeInterval(Double(minutes) * 60.0)
+                if caffeineLevel(at: futureDate) <= 50.0 {
+                    targetTime = futureDate
+                    break
+                }
+            }
+        }
+        
+        // Check if targetTime is within 6 hours of bedtime
+        let calendar = Calendar.current
+        let bedtimeComponents = calendar.dateComponents([.hour, .minute], from: bedtime)
+        var bedtimeToday = calendar.startOfDay(for: targetTime)
+        bedtimeToday = calendar.date(bySettingHour: bedtimeComponents.hour ?? 22,
+                                     minute: bedtimeComponents.minute ?? 0,
+                                     second: 0,
+                                     of: bedtimeToday) ?? bedtimeToday
+        
+        let secondsToBedtime = bedtimeToday.timeIntervalSince(targetTime)
+        if secondsToBedtime < 6.0 * 3600.0 {
+            return nil // Skip coffee!
+        }
+        return targetTime
+    }
+
     private(set) var dataVersion: Int = 1
 
     // MARK: - Dependencies

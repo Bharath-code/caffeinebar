@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CaffeineBar — Modern Coffee Cup Counter & Crash Predictor</title>
+    <meta name="description" content="A gorgeous macOS menu bar coffee cup counter. Model your caffeine half-life, predict your crash window, and protect your sleep.">
+    
+    <!-- Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styling -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navbar / Header -->
+    <header class="app-header">
+        <div class="logo">
+            <span class="logo-icon">☕️</span>
+            <span class="logo-text">CaffeineBar</span>
+        </div>
+        <nav class="header-nav">
+            <a href="#predictor" class="nav-link">Crash Predictor</a>
+            <a href="#pricing" class="nav-link">Get App</a>
+            <a href="#about" class="nav-link">About</a>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-container">
+                <h1 class="hero-title">
+                    The beautiful <span class="gradient-text">coffee cup counter</span> for your macOS menu bar.
+                </h1>
+                <p class="hero-subtitle">
+                    Track your intake, predict when you'll crash, and get reminders before you ruin your sleep.
+                </p>
+                
+                <!-- Video Embed / Ambulance Reel Mock -->
+                <div class="video-container">
+                    <video id="ambulance-reel" autoplay loop muted playsinline>
+                        <!-- A placeholder layout or video loop. If missing, we render an elegant interactive mockup canvas/SVG inside -->
+                        <source src="assets/ambulance_reel.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-overlay" id="video-unmute-btn">
+                        <span class="sound-icon">🔇 Click to unmute</span>
+                    </div>
+                </div>
+
+                <!-- Waitlist Form (Above the fold) -->
+                <div class="waitlist-card">
+                    <p class="waitlist-title">Be the first to know when we ship updates</p>
+                    <form id="waitlist-form" class="waitlist-form">
+                        <input type="email" id="waitlist-email" placeholder="Enter your email" required class="waitlist-input">
+                        <button type="submit" class="btn btn-primary">Join Waitlist</button>
+                    </form>
+                    <div id="waitlist-success" class="waitlist-success hidden">
+                        🎉 You're in! We'll keep you updated.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Caffeine Crash Predictor Widget -->
+        <section id="predictor" class="predictor-section">
+            <div class="section-header">
+                <span class="section-tag">Interactive Tool</span>
+                <h2 class="section-title">Caffeine Crash Predictor</h2>
+                <p class="section-desc">Model your real-time metabolism curve. Enter what you drank and when to predict the crash.</p>
+            </div>
+
+            <div class="predictor-grid">
+                <!-- Inputs Column -->
+                <div class="predictor-panel inputs-panel">
+                    <h3 class="panel-title">1. Log Consumption</h3>
+                    
+                    <div class="input-group">
+                        <label for="drink-type">What did you drink?</label>
+                        <select id="drink-type" class="custom-select">
+                            <option value="espresso" data-mg="75">Espresso (75 mg)</option>
+                            <option value="double-espresso" data-mg="150" selected>Double Espresso (150 mg)</option>
+                            <option value="drip-coffee" data-mg="140">Drip Coffee 12oz (140 mg)</option>
+                            <option value="latte" data-mg="75">Latte / Cappuccino (75 mg)</option>
+                            <option value="cold-brew" data-mg="200">Cold Brew (200 mg)</option>
+                            <option value="energy-drink" data-mg="160">Energy Drink (160 mg)</option>
+                            <option value="matcha" data-mg="35">Green Tea / Matcha (35 mg)</option>
+                            <option value="black-tea" data-mg="50">Black Tea (50 mg)</option>
+                            <option value="custom" data-mg="0">Custom Amount (mg)</option>
+                        </select>
+                    </div>
+
+                    <div id="custom-mg-group" class="input-group hidden">
+                        <label for="custom-mg">Custom Caffeine (mg)</label>
+                        <input type="number" id="custom-mg" min="0" max="1000" value="100" class="custom-input">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="drink-time">When did you drink it?</label>
+                        <select id="drink-time" class="custom-select">
+                            <option value="0">Just now</option>
+                            <option value="30">30 minutes ago</option>
+                            <option value="60">1 hour ago</option>
+                            <option value="120">2 hours ago</option>
+                            <option value="180">3 hours ago</option>
+                            <option value="240">4 hours ago</option>
+                            <option value="360">6 hours ago</option>
+                            <option value="custom-time">Specific Time...</option>
+                        </select>
+                    </div>
+
+                    <div id="specific-time-group" class="input-group hidden">
+                        <label for="specific-time">Specific Time</label>
+                        <input type="time" id="specific-time" class="custom-input">
+                    </div>
+
+                    <button type="button" id="add-drink-btn" class="btn btn-secondary btn-full">Add Drink</button>
+
+                    <hr class="panel-divider">
+
+                    <h3 class="panel-title">2. Metabolism Profile</h3>
+                    
+                    <div class="input-group">
+                        <label for="metabolism-profile">Half-Life Profile</label>
+                        <select id="metabolism-profile" class="custom-select">
+                            <option value="fast">Fast Metabolizer (3.5h half-life)</option>
+                            <option value="normal" selected>Normal Metabolizer (5.0h half-life)</option>
+                            <option value="slow">Slow Metabolizer (7.0h half-life)</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="bedtime">Target Bedtime</label>
+                        <input type="time" id="bedtime" value="23:00" class="custom-input">
+                    </div>
+
+                    <div class="drinks-log-container">
+                        <h4 class="log-title">Active Logged Drinks</h4>
+                        <ul id="drinks-list" class="drinks-list">
+                            <!-- Dynamically populated -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Outputs Column -->
+                <div class="predictor-panel outputs-panel">
+                    <!-- Graph Visualizer -->
+                    <div class="graph-wrapper">
+                        <svg id="curve-chart" class="curve-chart" viewBox="0 0 500 220" preserveAspectRatio="none">
+                            <!-- Background grids and curves drawn via JS -->
+                        </svg>
+                        <div class="chart-labels">
+                            <span>08:00</span>
+                            <span>14:00</span>
+                            <span>20:00</span>
+                            <span>02:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Predictions Cards -->
+                    <div class="predictions-grid">
+                        <!-- Current Level -->
+                        <div class="prediction-card highlight">
+                            <div class="card-label">Current Level</div>
+                            <div class="card-value" id="val-current">0 <span class="unit">mg</span></div>
+                            <div class="card-sub" id="status-text">Empty</div>
+                        </div>
+
+                        <!-- Crash Prediction -->
+                        <div class="prediction-card">
+                            <div class="card-label">Predicted Crash Window</div>
+                            <div class="card-value" id="val-crash">--:--</div>
+                            <div class="card-sub" id="crash-sub">No caffeine active</div>
+                        </div>
+
+                        <!-- Next Coffee Window -->
+                        <div class="prediction-card">
+                            <div class="card-label">Next Coffee Window</div>
+                            <div class="card-value" id="val-next-coffee">--:--</div>
+                            <div class="card-sub" id="next-coffee-sub">Safe to drink now</div>
+                        </div>
+
+                        <!-- Sleep Warning -->
+                        <div class="prediction-card" id="sleep-card">
+                            <div class="card-label">Bedtime Caffeine Level</div>
+                            <div class="card-value" id="val-bedtime">0 <span class="unit">mg</span></div>
+                            <div class="card-sub" id="sleep-sub">Safe for Sleep ✅</div>
+                        </div>
+                    </div>
+
+                    <div class="share-actions">
+                        <button type="button" id="share-btn" class="btn btn-share btn-full">
+                            <span>🔗 Share Crash Timeline</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing" class="pricing-section">
+            <div class="section-header">
+                <span class="section-tag">Pricing</span>
+                <h2 class="section-title">Upgrade Your Caffeine Routine</h2>
+                <p class="section-desc">Choose a tier to match your focus requirements. One-time purchases, yours forever.</p>
+            </div>
+
+            <div class="pricing-grid">
+                <!-- Pro Tier -->
+                <div class="pricing-card">
+                    <div class="card-badge">Most Popular</div>
+                    <h3 class="tier-name">CaffeineBar Pro</h3>
+                    <div class="tier-price"><span id="pro-price-val">$9.99</span> <span class="price-sub">one-time</span></div>
+                    <p class="tier-desc">Unlock advanced tracking, localized half-life modeling, and customized notifications.</p>
+                    <ul class="tier-features">
+                        <li>Customizable metabolism profiles</li>
+                        <li>Half-life clock in menu bar</li>
+                        <li>Escalation sound packs</li>
+                        <li>Meeting Mode & call auto-mute</li>
+                        <li>Weekly statistics and charts</li>
+                    </ul>
+                    <a href="#" id="pro-checkout-link" class="btn btn-primary btn-full">Buy Pro</a>
+                </div>
+
+                <!-- Ultra Tier -->
+                <div class="pricing-card premium">
+                    <h3 class="tier-name">CaffeineBar Ultra</h3>
+                    <div class="tier-price"><span>$14.99</span> <span class="price-sub">one-time</span></div>
+                    <p class="tier-desc">The ultimate productivity integration for serious coffee aficionados.</p>
+                    <ul class="tier-features">
+                        <li>Everything in Pro tier</li>
+                        <li>iCloud Sync (CloudKit) across devices</li>
+                        <li>Apple Health integration (Write-only)</li>
+                        <li>AppIntents & Shortcuts support</li>
+                        <li>Annual December Wrapped card</li>
+                        <li>Custom sound import</li>
+                    </ul>
+                    <a href="https://polar.sh/caffeinebar-ultra-1499" id="ultra-checkout-link" class="btn btn-secondary btn-full">Buy Ultra</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <p>&copy; 2026 CaffeineBar. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="about.html" id="about">About</a>
+                <a href="privacy.html" id="privacy">Privacy Policy</a>
+                <a href="/CaffeineBar.dmg" id="download">Download macOS App (.dmg)</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

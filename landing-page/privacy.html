@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — CaffeineBar</title>
+    <meta name="description" content="Privacy Policy for CaffeineBar. Your logs, your health, your data. Built with zero tracking.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo">
+            <span class="logo-icon">☕️</span>
+            <span class="logo-text">CaffeineBar</span>
+        </div>
+        <nav class="header-nav">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="index.html#predictor" class="nav-link">Predictor</a>
+            <a href="index.html#pricing" class="nav-link">Get App</a>
+        </nav>
+    </header>
+
+    <main class="hero-section" style="max-width: 800px; text-align: left; padding-top: 40px;">
+        <h1 class="hero-title" style="font-size: 2.8rem; margin-bottom: 24px;">Privacy Policy</h1>
+        <p class="hero-subtitle" style="margin-left: 0; text-align: left; max-width: 100%;">
+            Effective date: May 31, 2026. Your health data is yours alone. We design our software to store your logs locally and securely.
+        </p>
+
+        <section style="margin-top: 40px; background: var(--bg-surface); padding: 32px; border-radius: var(--border-radius); border: 1px solid var(--border-color);">
+            <h2 style="margin-bottom: 16px; font-size: 1.5rem; color: var(--primary);">Data Integrity Principles</h2>
+            <ul style="list-style: none; color: var(--text-secondary); line-height: 1.8;">
+                <li style="margin-bottom: 12px;"><strong>🔒 Local-First Storage:</strong> Your coffee logging history and configuration parameters are stored locally on your device via secure `UserDefaults` or standard keychain namespaces.</li>
+                <li style="margin-bottom: 12px;"><strong>☁️ Private CloudKit Sync:</strong> For Ultra subscribers, iCloud synchronization is orchestrated directly between your Macs using your personal private Apple CloudKit containers. We do not operate external database servers, and we never see your sync logs.</li>
+                <li style="margin-bottom: 12px;"><strong>❤️ Apple Health:</strong> If you authorize the Apple Health integration, CaffeineBar writes caffeine content (dietary caffeine) directly to Apple Health on your request. CaffeineBar has **write-only** access; we never read your other Health metrics.</li>
+                <li style="margin-bottom: 12px;"><strong>❌ No Analytics or Tracking:</strong> There are no analytics trackers, advertising identifiers, or performance diagnostics reporting tools compiled into CaffeineBar. We don't track your screen views, habits, or locations.</li>
+            </ul>
+        </section>
+
+        <section style="margin-top: 40px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.5rem;">Purchase Information</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Payments for direct downloads are processed securely by Polar.sh. When you buy Pro or Ultra, we are notified of the license state, but we do not receive or hold credit card details.
+            </p>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-content">
+            <p>&copy; 2026 CaffeineBar. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
