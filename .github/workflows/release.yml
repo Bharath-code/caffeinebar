@@ -5,13 +5,11 @@ on:
 
 jobs:
   release:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
-      SCHEME: CaffeineBar
-      PRODUCT_NAME: CaffeineBar
-      ARCHIVE_PATH: build/CaffeineBar.xcarchive
-      APP_PATH: build/CaffeineBar.app
+      APP_PATH: CaffeineBar/CaffeineBar.app
       DMG_PATH: build/CaffeineBar.dmg
+      SIGN_ID: ${{ secrets.DEVELOPER_ID_APPLICATION }}
 
     steps:
       - name: Checkout code
@@ -22,109 +20,113 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Preflight — refuse to ship placeholders (Reqs 9, 40, 50)
+        working-directory: CaffeineBar
+        env:
+          DOWNLOAD_URL_PREFIX: ${{ vars.DOWNLOAD_URL_PREFIX }}
+        run: |
+          fail=0
+          if find Sources/Sounds/Default -name '*.m4a' -size 0 | grep -q .; then
+            echo "::error::Default sound pack has 0-byte files"; fail=1
+          fi
+          if ! /usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' Sources/Info.plist >/dev/null 2>&1; then
+            echo "::error::SUPublicEDKey missing from Sources/Info.plist — run Sparkle generate_keys"; fail=1
+          fi
+          if grep -q 'BFqKz+VKem2jGVMxV0sLbqH7fMPQDzKMmFm7' Sources/Licensing/LicenseManager.swift; then
+            echo "::error::LicenseManager still uses the placeholder public key"; fail=1
+          fi
+          if [ -z "$DOWNLOAD_URL_PREFIX" ]; then
+            echo "::error::Repo variable DOWNLOAD_URL_PREFIX is unset (where the DMG will be hosted)"; fail=1
+          fi
+          exit $fail
+
+      - name: Run tests
+        working-directory: CaffeineBar
+        run: swift test
+
+      - name: Stamp version from tag
+        working-directory: CaffeineBar
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${GITHUB_REF_NAME#v}" Sources/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" Sources/Info.plist
+
+      - name: Build universal .app
+        run: CaffeineBar/run.sh --release --no-launch
+
       - name: Import signing certificate
         env:
           APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
-          # Create a temporary keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           KEYCHAIN_PASSWORD=$(uuidgen)
-
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-          # Import certificate
           CERT_PATH=$RUNNER_TEMP/certificate.p12
           echo -n "$APPLE_CERTIFICATE_P12" | base64 --decode -o "$CERT_PATH"
-          security import "$CERT_PATH" \
-            -P "$APPLE_CERTIFICATE_PASSWORD" \
-            -A \
-            -t cert \
-            -f pkcs12 \
-            -k "$KEYCHAIN_PATH"
-
-          # Allow codesign to access the keychain
+          security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
 
-      - name: Resolve Swift packages
-        working-directory: CaffeineBar
-        run: xcodebuild -resolvePackageDependencies -scheme "$SCHEME"
-
-      - name: Build archive with Hardened Runtime
-        working-directory: CaffeineBar
+      # Inside-out signing per Sparkle's docs; --deep is unreliable for nested XPC services.
+      - name: Code-sign with Hardened Runtime
         run: |
-          xcodebuild archive \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            -archivePath "../$ARCHIVE_PATH" \
-            CODE_SIGN_IDENTITY="${{ secrets.DEVELOPER_ID_APPLICATION }}" \
-            OTHER_CODE_SIGN_FLAGS="--options=runtime" \
-            ENABLE_HARDENED_RUNTIME=YES
+          SP="$APP_PATH/Contents/Frameworks/Sparkle.framework"
+          sign() { codesign --force --timestamp --options runtime --sign "$SIGN_ID" "$@"; }
+          sign "$SP/Versions/B/XPCServices/Installer.xpc"
+          sign --preserve-metadata=entitlements "$SP/Versions/B/XPCServices/Downloader.xpc"
+          sign "$SP/Versions/B/Autoupdate"
+          sign "$SP/Versions/B/Updater.app"
+          sign "$SP"
+          sign --entitlements CaffeineBar/CaffeineBar.entitlements "$APP_PATH"
+          codesign --verify --strict --deep --verbose=2 "$APP_PATH"
 
-      - name: Export app from archive
+      - name: Create and sign DMG
         run: |
           mkdir -p build
-          cp -R "$ARCHIVE_PATH/Products/usr/local/bin/$PRODUCT_NAME.app" "$APP_PATH" 2>/dev/null || \
-          cp -R "$ARCHIVE_PATH/Products/Applications/$PRODUCT_NAME.app" "$APP_PATH" 2>/dev/null || \
-          cp -R "$(find "$ARCHIVE_PATH" -name "*.app" -type d | head -1)" "$APP_PATH"
+          hdiutil create -volname CaffeineBar -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_PATH"
+          codesign --force --timestamp --sign "$SIGN_ID" "$DMG_PATH"
 
-      - name: Code-sign app with Hardened Runtime
-        run: |
-          codesign --deep --force --options runtime \
-            --sign "${{ secrets.DEVELOPER_ID_APPLICATION }}" \
-            --entitlements CaffeineBar/CaffeineBar.entitlements \
-            "$APP_PATH"
-
-      - name: Create DMG
-        run: |
-          hdiutil create -volname "$PRODUCT_NAME" \
-            -srcfolder "$APP_PATH" \
-            -ov -format UDZO \
-            "$DMG_PATH"
-
-      - name: Code-sign DMG
-        run: |
-          codesign --force --sign "${{ secrets.DEVELOPER_ID_APPLICATION }}" "$DMG_PATH"
-
-      - name: Submit to Apple Notarization
+      - name: Notarize (fails on any status but Accepted — Req 51.2)
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: |
           xcrun notarytool submit "$DMG_PATH" \
-            --apple-id "$APPLE_ID" \
-            --team-id "$APPLE_TEAM_ID" \
-            --password "$APPLE_APP_PASSWORD" \
-            --wait \
-            --output-format json > notarization_result.json
-
-          cat notarization_result.json
-
-      - name: Fail on non-success notarization status
-        run: |
-          STATUS=$(cat notarization_result.json | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','Unknown'))")
-          echo "Notarization status: $STATUS"
+            --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" \
+            --wait --output-format json | tee notarization_result.json
+          STATUS=$(python3 -c "import json; print(json.load(open('notarization_result.json')).get('status','Unknown'))")
           if [ "$STATUS" != "Accepted" ]; then
             echo "::error::Notarization failed with status: $STATUS"
             exit 1
           fi
 
-      - name: Staple notarization ticket
+      - name: Staple and verify Gatekeeper
         run: |
           xcrun stapler staple "$DMG_PATH"
+          spctl --assess --type open --context context:primary-signature --verbose "$DMG_PATH"
 
-      - name: Upload DMG artifact
+      - name: Sign update and generate appcast (Req 50)
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+          DOWNLOAD_URL_PREFIX: ${{ vars.DOWNLOAD_URL_PREFIX }}
+        run: |
+          KEY=$RUNNER_TEMP/sparkle_ed.key
+          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" > "$KEY"
+          CaffeineBar/.build/artifacts/sparkle/Sparkle/bin/generate_appcast \
+            --ed-key-file "$KEY" --download-url-prefix "$DOWNLOAD_URL_PREFIX" build
+          rm -f "$KEY"
+
+      - name: Upload DMG and appcast
         uses: actions/upload-artifact@v4
         with:
-          name: CaffeineBar.dmg
-          path: build/CaffeineBar.dmg
+          name: CaffeineBar-${{ github.ref_name }}
+          path: |
+            build/CaffeineBar.dmg
+            build/appcast.xml
 
       - name: Clean up keychain
         if: always()
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+        run: security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" 2>/dev/null || true

@@ -132,11 +132,29 @@ enum SoundPackRegistry {
         accountantPack
     ]
 
+    /// Packs whose cup-1 asset has real audio. Themed packs ship as 0-byte
+    /// placeholders until recorded, so they stay hidden from the picker (Req 13).
+    static let availablePacks: [SoundPack] = allPacks.filter { pack in
+        guard let url = assetURL(pack.cupAssets[0], pack: pack),
+              let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize else { return false }
+        return size > 0
+    }
+
+    /// SwiftPM's `Bundle.module` looks for the resource bundle at the `.app` root,
+    /// which only exists on the build machine. Shipped apps keep it in Contents/Resources.
+    static let resources: Bundle = Bundle.main
+        .url(forResource: "CaffeineBar_CaffeineBar", withExtension: "bundle")
+        .flatMap(Bundle.init(url:)) ?? .module
+
     // MARK: - Pack Lookup
 
-    /// Returns the pack matching the given ID, or the default pack if not found.
+    /// Returns the pack matching the given ID, or the default pack if not found or not recorded yet.
     static func pack(for id: String) -> SoundPack {
-        allPacks.first { $0.id == id } ?? defaultPack
+        availablePacks.first { $0.id == id } ?? defaultPack
+    }
+
+    private static func assetURL(_ name: String, pack: SoundPack) -> URL? {
+        resources.url(forResource: name, withExtension: "m4a", subdirectory: "Sounds/\(pack.subdirectory)")
     }
 
     // MARK: - Cup-to-Sound Resolution
@@ -183,12 +201,6 @@ enum SoundPackRegistry {
             assetName = pack.chaosPool[chaosIndex]
         }
 
-        // Look up the asset in the bundle's processed resources
-        // Assets are in Sounds/<PackSubdirectory>/<assetName>.m4a
-        return Bundle.module.url(
-            forResource: assetName,
-            withExtension: "m4a",
-            subdirectory: "Sounds/\(pack.subdirectory)"
-        )
+        return assetURL(assetName, pack: pack)
     }
 }

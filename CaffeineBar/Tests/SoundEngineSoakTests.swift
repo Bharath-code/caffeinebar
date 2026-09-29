@@ -232,3 +232,21 @@ struct SoundEngineSoakTests {
         return nil
     }
 }
+
+// MARK: - Bundled Asset Integrity (Req 9, 13)
+
+@Suite("Bundled sound assets")
+struct BundledSoundAssetTests {
+
+    @Test("Every Default-pack asset exists, decodes, and is under 3 s")
+    func defaultPackDecodes() throws {
+        guard #available(macOS 14.0, *) else { return }
+        let pack = SoundPackRegistry.defaultPack
+        for cup in 1...(5 + pack.chaosPool.count) {
+            let url = try #require(SoundPackRegistry.resolveAssetURL(for: cup, pack: pack, tier: .pro), "cup \(cup)")
+            let player = try AVAudioPlayer(contentsOf: url)
+            #expect(player.duration > 0.1 && player.duration <= 3, "\(url.lastPathComponent): \(player.duration)s")
+        }
+        #expect(SoundPackRegistry.availablePacks.contains { $0.id == "Default" })
+    }
+}

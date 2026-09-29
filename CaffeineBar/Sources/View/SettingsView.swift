@@ -369,7 +369,7 @@ struct SettingsView: View {
             let isPro = license.resolvedTier >= .pro
 
             Picker("Sound Pack", selection: $store.selectedSoundPack) {
-                ForEach(SoundPackRegistry.allPacks) { pack in
+                ForEach(SoundPackRegistry.availablePacks) { pack in
                     Text(pack.displayName)
                         .tag(pack.id)
                 }
