@@ -1,6 +1,8 @@
 #!/bin/bash
 # CaffeineBar — Build & Run as .app bundle
-# Usage: ./run.sh [--release]
+# Usage: ./run.sh [--release] [--no-launch]
+#   --release    universal (arm64 + x86_64) release build — the only bundling path CI uses
+#   --no-launch  package only; don't kill or open the app
 
 set -e
 
@@ -9,22 +11,23 @@ cd "$SCRIPT_DIR"
 
 APP_NAME="CaffeineBar"
 APP_BUNDLE="$SCRIPT_DIR/$APP_NAME.app"
-BUILD_CONFIG="debug"
+BUILD_ARGS=()
+LAUNCH=1
+for arg in "$@"; do
+    case "$arg" in
+        --release) BUILD_ARGS=(-c release --arch arm64 --arch x86_64) ;;
+        --no-launch) LAUNCH=0 ;;
+    esac
+done
 
-if [[ "$1" == "--release" ]]; then
-    BUILD_CONFIG="release"
-    echo "Building in release mode..."
-    swift build -c release
-else
-    echo "Building in debug mode..."
-    swift build
+echo "Building (${BUILD_ARGS[*]:-debug})..."
+swift build "${BUILD_ARGS[@]}"
+BUILD_DIR="$(swift build "${BUILD_ARGS[@]}" --show-bin-path)"
+
+if [ "$LAUNCH" = 1 ]; then
+    pkill -x "$APP_NAME" 2>/dev/null || true
+    sleep 0.5
 fi
-
-BUILD_DIR="$SCRIPT_DIR/.build/$BUILD_CONFIG"
-
-# Kill any existing instance
-pkill -x "$APP_NAME" 2>/dev/null || true
-sleep 0.5
 
 echo "Packaging $APP_NAME.app..."
 
@@ -55,6 +58,7 @@ if [ -d "$SPARKLE_FW" ]; then
 fi
 
 echo "  ✓ $APP_NAME.app ready"
+[ "$LAUNCH" = 1 ] || exit 0
 echo ""
 echo "Launching..."
 open "$APP_BUNDLE"
